@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from "react"
 import { ArrowLeft, Send, Check, Sparkles } from "lucide-react"
-import { submitJudgment } from "@/app/actions"
+import { getAiReply, submitJudgment } from "@/app/actions"
 import type { Submission, Judgment } from "@/lib/db"
 import { STAGE_LABELS, type Post } from "@/lib/study-data"
 import { InstagramPost } from "@/components/instagram-post"
@@ -29,6 +29,8 @@ export function AnalysisScreen({ post, existing, onComplete, onExit }: Props) {
   const [chatDone, setChatDone] = useState(false)
   const [showJudgment, setShowJudgment] = useState(false)
   const [pending, startTransition] = useTransition()
+  const [isLoading, setIsLoading] = useState(false)
+  const isStructured = true
 
   const scrollRef = useRef<HTMLDivElement>(null)
 
@@ -39,26 +41,32 @@ export function AnalysisScreen({ post, existing, onComplete, onExit }: Props) {
   // The active stage for the progress bar: number of completed stages.
   const activeStage = chatDone ? STAGE_LABELS.length : stageIndex
 
-  function handleSend(e: React.FormEvent) {
+  async function handleSend(e: React.FormEvent) {
     e.preventDefault()
     const text = input.trim()
-    if (!text) return
+    if (!text || isLoading) return
 
     const userMsg: ChatMessage = { role: "user", text }
-    const nextIndex = stageIndex + 1
     setInput("")
+    setIsLoading(true)
 
-    if (nextIndex < post.script.length) {
-      // Append user message, then the next scripted AI prompt.
-      setMessages((prev) => [...prev, userMsg, { role: "ai", text: post.script[nextIndex].prompt }])
-      setStageIndex(nextIndex)
-      // The last scripted turn is the "judgment" cue -> chat is complete.
-      if (nextIndex === post.script.length - 1) {
+    try {
+      const nextMessages = [...messages, userMsg]
+      const aiReply = await getAiReply(nextMessages, stageIndex, isStructured, post.caption)
+      const shouldAdvance = /\[NEXT_STAGE\]/i.test(aiReply)
+      const cleanedReply = aiReply.replace(/\[NEXT_STAGE\]/gi, "").trim()
+
+      setMessages((prev) => [...prev, userMsg, { role: "ai", text: cleanedReply }])
+
+      if (shouldAdvance && stageIndex < post.script.length - 1) {
+        setStageIndex((prev) => Math.min(prev + 1, post.script.length - 1))
+      }
+
+      if (stageIndex >= post.script.length - 1) {
         setChatDone(true)
       }
-    } else {
-      setMessages((prev) => [...prev, userMsg])
-      setChatDone(true)
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -153,7 +161,7 @@ export function AnalysisScreen({ post, existing, onComplete, onExit }: Props) {
               <Button
                 type="submit"
                 size="icon"
-                disabled={!input.trim()}
+                disabled={!input.trim() || isLoading}
                 aria-label="送出"
                 className="size-12 shrink-0 rounded-xl bg-primary text-primary-foreground transition-transform hover:bg-primary/90 active:scale-95 disabled:opacity-40"
               >
