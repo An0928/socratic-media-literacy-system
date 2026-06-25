@@ -22,11 +22,22 @@ const STAGE_INSTRUCTIONS = [
 
 type ChatMessage = { role: "ai" | "user"; text: string }
 
-function buildSystemInstruction(stageIndex: number, isStructured: boolean, postCaption: string) {
+function buildSystemInstruction(stageIndex: number, isStructured: boolean, postCaption: string, week: number) {
   const captionContext = `貼文內容：${postCaption}`
   if (isStructured) {
     const stageInstruction = STAGE_INSTRUCTIONS[stageIndex] ?? STAGE_INSTRUCTIONS[0]
     return `${captionContext}\n${stageInstruction}\n如果學生已經充分完成此階段，請在回覆末尾附加標記 [NEXT_STAGE]；否則就不要附加。每次回答請只用問句，並且只能問與這則貼文相關的問題。`
+  }
+
+  const scaffoldLevel = week <= 2 ? "high" : "low"
+
+  const scaffoldInstruction = scaffoldLevel === "high"
+    ? "請提供具體的引導方向，例如提示學生注意來源、標題用字或數字等細節。"
+    : "請用開放式問題引導，不要提供具體例子或方向，讓學生自己發現問題。"
+
+  if (isStructured) {
+    const stageInstruction = STAGE_INSTRUCTIONS[stageIndex] ?? STAGE_INSTRUCTIONS[0]
+    return `貼文內容：${postCaption}\n${stageInstruction}\n${scaffoldInstruction}\n每次只問一個問題。如果學生已充分完成此階段，在回覆末尾加 [NEXT_STAGE]。`
   }
 
   return `${captionContext}\n只能用問句，不能直接給答案，只能問跟這則貼文相關的問題。如果你判斷學生可以前往下一階段，請在回覆末尾附加標記 [NEXT_STAGE]；否則不要附加。`
@@ -37,13 +48,14 @@ export async function getAiReply(
   stageIndex: number,
   isStructured: boolean,
   postCaption: string,
+  week: number
 ): Promise<string> {
   const apiKey = process.env.GEMINI_API_KEY
   if (!apiKey) {
     throw new Error("Missing GEMINI_API_KEY in server environment")
   }
 
-  const systemInstruction = buildSystemInstruction(stageIndex, isStructured, postCaption)
+  const systemInstruction = buildSystemInstruction(stageIndex, isStructured, postCaption, week)
   const historyText = chatHistory
     .map((message) => `${message.role === "ai" ? "AI" : "學生"}：${message.text}`)
     .join("\n")

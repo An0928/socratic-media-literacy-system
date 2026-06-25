@@ -52,7 +52,7 @@ export function AnalysisScreen({ post, existing, onComplete, onExit }: Props) {
 
     try {
       const nextMessages = [...messages, userMsg]
-      const aiReply = await getAiReply(nextMessages, stageIndex, isStructured, post.caption)
+      const aiReply = await getAiReply(nextMessages, stageIndex, isStructured, post.caption, post.week)
       const shouldAdvance = /\[NEXT_STAGE\]/i.test(aiReply)
       const cleanedReply = aiReply.replace(/\[NEXT_STAGE\]/gi, "").trim()
 
