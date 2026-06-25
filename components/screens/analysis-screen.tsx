@@ -49,6 +49,7 @@ export function AnalysisScreen({ post, existing, onComplete, onExit }: Props) {
 
     const userMsg: ChatMessage = { role: "user", text }
     setInput("")
+    setMessages((prev) => [...prev, userMsg, { role: "ai", text: "..." }])
     setIsLoading(true)
 
     try {
@@ -65,7 +66,10 @@ export function AnalysisScreen({ post, existing, onComplete, onExit }: Props) {
       const shouldAdvance = /\[NEXT_STAGE\]/i.test(aiReply)
       const cleanedReply = aiReply.replace(/\[NEXT_STAGE\]/gi, "").trim()
 
-      setMessages((prev) => [...prev, userMsg, { role: "ai", text: cleanedReply }])
+      setMessages((prev) => {
+        const withoutLoading = prev.filter((message) => !(message.role === "ai" && message.text === "..."))
+        return [...withoutLoading, { role: "ai", text: cleanedReply }]
+      })
 
       if (shouldAdvance && stageIndex < post.script.length - 1) {
         setStageIndex((prev) => Math.min(prev + 1, post.script.length - 1))

@@ -63,7 +63,9 @@ export function StudyApp({ initialState }: { initialState: StudentState | null }
   }, [completedIds, postsByWeek])
 
   useEffect(() => {
-    if (screen !== "analysis" || !activePostId) {
+    const postId = activePostId
+
+    if (screen !== "analysis" || !postId) {
       setActivePost(null)
       return
     }
@@ -71,7 +73,7 @@ export function StudyApp({ initialState }: { initialState: StudentState | null }
     let ignore = false
 
     async function loadActivePost() {
-      const post = await getPostByIdAction(activePostId)
+      const post = await getPostByIdAction(postId)
       if (!ignore) setActivePost(post)
     }
 
