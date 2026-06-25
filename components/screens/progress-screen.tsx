@@ -1,13 +1,11 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import Image from "next/image"
 import { Check, Lock, ChevronRight, LogOut, Trophy } from "lucide-react"
-import {
-  POSTS_PER_WEEK,
-  TOTAL_WEEKS,
-  getPostsByWeek,
-  type Post,
-} from "@/lib/study-data"
+import { getPostsByWeekAction } from "@/app/actions"
+import { POSTS_PER_WEEK, TOTAL_WEEKS } from "@/lib/study-content"
+import type { Post } from "@/lib/study-data"
 import { Button } from "@/components/ui/button"
 
 type Props = {
@@ -27,11 +25,35 @@ export function ProgressScreen({
   onOpenPost,
   onLogout,
 }: Props) {
-  const weekPosts = getPostsByWeek(currentWeek)
-  const completedThisWeek = weekPosts.filter((p) => completedIds.has(p.id)).length
+  const [postsByWeek, setPostsByWeek] = useState<Record<number, Post[]>>({})
+
+  useEffect(() => {
+    let ignore = false
+
+    async function loadPosts() {
+      const loaded = await Promise.all(
+        Array.from({ length: TOTAL_WEEKS }, (_, index) => getPostsByWeekAction(index + 1)),
+      )
+
+      if (ignore) return
+
+      const nextMap = Object.fromEntries(
+        loaded.map((posts, index) => [index + 1, posts]),
+      ) as Record<number, Post[]>
+      setPostsByWeek(nextMap)
+    }
+
+    loadPosts()
+    return () => {
+      ignore = true
+    }
+  }, [currentWeek])
+
+  const weekPosts = postsByWeek[currentWeek] ?? []
+  const completedThisWeek = weekPosts.filter((post) => completedIds.has(post.id)).length
 
   // Determine the first incomplete post of the week (the "current" one).
-  const currentPostId = weekPosts.find((p) => !completedIds.has(p.id))?.id ?? null
+  const currentPostId = weekPosts.find((post) => !completedIds.has(post.id))?.id ?? null
 
   function tileState(post: Post, index: number): TileState {
     if (completedIds.has(post.id)) return "completed"
@@ -87,14 +109,18 @@ export function ProgressScreen({
 
         {/* Post tiles */}
         <section className="mt-5 grid gap-4 sm:grid-cols-2">
-          {weekPosts.map((post, i) => (
-            <PostTile
-              key={post.id}
-              post={post}
-              state={tileState(post, i)}
-              onOpen={() => onOpenPost(post)}
-            />
-          ))}
+          {weekPosts.length === 0 ? (
+            <p className="text-sm text-muted-foreground sm:col-span-2">載入貼文中…</p>
+          ) : (
+            weekPosts.map((post, index) => (
+              <PostTile
+                key={post.id}
+                post={post}
+                state={tileState(post, index)}
+                onOpen={() => onOpenPost(post)}
+              />
+            ))
+          )}
         </section>
 
         {/* Overall progress across weeks */}
@@ -106,8 +132,8 @@ export function ProgressScreen({
           <ol className="mt-4 flex items-center justify-between gap-2">
             {Array.from({ length: TOTAL_WEEKS }, (_, idx) => {
               const week = idx + 1
-              const posts = getPostsByWeek(week)
-              const allDone = posts.every((p) => completedIds.has(p.id))
+              const posts = postsByWeek[week] ?? []
+              const allDone = posts.length > 0 && posts.every((post) => completedIds.has(post.id))
               const isCurrent = week === currentWeek && !allDone
               const state: TileState = allDone ? "completed" : isCurrent ? "current" : "locked"
               return (

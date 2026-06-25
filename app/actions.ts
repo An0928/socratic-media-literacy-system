@@ -10,6 +10,7 @@ import {
   type Judgment,
   type Submission,
 } from "@/lib/db"
+import { getPostById, getPostsByWeek, type Post } from "@/lib/study-data"
 
 const COOKIE = "mlt_student"
 
@@ -98,6 +99,15 @@ export type StudentState = {
   studentId: string
   hasSeenWelcome: boolean
   submissions: Submission[]
+}
+
+export async function getPostsByWeekAction(week: number): Promise<Post[]> {
+  return getPostsByWeek(week)
+}
+
+export async function getPostByIdAction(id: string): Promise<Post | null> {
+  const post = await getPostById(id)
+  return post ?? null
 }
 
 export async function getStudentState(): Promise<StudentState | null> {

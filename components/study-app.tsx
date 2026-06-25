@@ -1,9 +1,16 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import type { StudentState } from "@/app/actions"
-import { completeWelcome, getStudentState, logout } from "@/app/actions"
-import { POSTS, TOTAL_WEEKS, getPostsByWeek, type Post } from "@/lib/study-data"
+import {
+  completeWelcome,
+  getPostByIdAction,
+  getPostsByWeekAction,
+  getStudentState,
+  logout,
+} from "@/app/actions"
+import { TOTAL_WEEKS } from "@/lib/study-content"
+import type { Post } from "@/lib/study-data"
 import { LoginScreen } from "@/components/screens/login-screen"
 import { WelcomeScreen } from "@/components/screens/welcome-screen"
 import { ProgressScreen } from "@/components/screens/progress-screen"
@@ -17,20 +24,62 @@ export function StudyApp({ initialState }: { initialState: StudentState | null }
     initialState && !initialState.hasSeenWelcome ? "welcome" : "progress",
   )
   const [activePostId, setActivePostId] = useState<string | null>(null)
+  const [activePost, setActivePost] = useState<Post | null>(null)
+  const [postsByWeek, setPostsByWeek] = useState<Record<number, Post[]>>({})
 
   const completedIds = useMemo(
     () => new Set(state?.submissions.map((s) => s.postId) ?? []),
     [state],
   )
 
-  // The current week is the earliest week that still has an incomplete post.
+  useEffect(() => {
+    let ignore = false
+
+    async function loadPosts() {
+      const loaded = await Promise.all(
+        Array.from({ length: TOTAL_WEEKS }, (_, index) => getPostsByWeekAction(index + 1)),
+      )
+
+      if (ignore) return
+
+      const nextMap = Object.fromEntries(
+        loaded.map((posts, index) => [index + 1, posts]),
+      ) as Record<number, Post[]>
+      setPostsByWeek(nextMap)
+    }
+
+    loadPosts()
+    return () => {
+      ignore = true
+    }
+  }, [completedIds])
+
   const currentWeek = useMemo(() => {
-    for (let w = 1; w <= TOTAL_WEEKS; w++) {
-      const posts = getPostsByWeek(w)
-      if (posts.some((p) => !completedIds.has(p.id))) return w
+    for (let week = 1; week <= TOTAL_WEEKS; week++) {
+      const posts = postsByWeek[week] ?? []
+      if (posts.some((post) => !completedIds.has(post.id))) return week
     }
     return TOTAL_WEEKS
-  }, [completedIds])
+  }, [completedIds, postsByWeek])
+
+  useEffect(() => {
+    if (screen !== "analysis" || !activePostId) {
+      setActivePost(null)
+      return
+    }
+
+    let ignore = false
+
+    async function loadActivePost() {
+      const post = await getPostByIdAction(activePostId)
+      if (!ignore) setActivePost(post)
+    }
+
+    loadActivePost()
+    return () => {
+      ignore = true
+    }
+  }, [activePostId, screen])
 
   async function refresh() {
     const next = await getStudentState()
@@ -49,12 +98,14 @@ export function StudyApp({ initialState }: { initialState: StudentState | null }
   }
 
   function openPost(post: Post) {
+    setActivePost(post)
     setActivePostId(post.id)
     setScreen("analysis")
   }
 
   async function handleAnalysisComplete() {
     await refresh()
+    setActivePost(null)
     setActivePostId(null)
     setScreen("progress")
   }
@@ -63,6 +114,7 @@ export function StudyApp({ initialState }: { initialState: StudentState | null }
     await logout()
     setState(null)
     setScreen("progress")
+    setActivePost(null)
     setActivePostId(null)
   }
 
@@ -75,13 +127,17 @@ export function StudyApp({ initialState }: { initialState: StudentState | null }
   }
 
   if (screen === "analysis" && activePostId) {
-    const post = POSTS.find((p) => p.id === activePostId)!
+    if (!activePost) {
+      return <div className="flex min-h-screen items-center justify-center">載入中…</div>
+    }
+
     return (
       <AnalysisScreen
-        post={post}
-        existing={state.submissions.find((s) => s.postId === activePostId)}
+        post={activePost}
+        existing={state.submissions.find((submission) => submission.postId === activePostId)}
         onComplete={handleAnalysisComplete}
         onExit={() => {
+          setActivePost(null)
           setActivePostId(null)
           setScreen("progress")
         }}

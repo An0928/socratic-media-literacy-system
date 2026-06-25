@@ -32,7 +32,7 @@ const useMysql = CONNECTION_STRING.length > 0
 let pool: mysql.Pool | null = null
 let schemaReady: Promise<void> | null = null
 
-function getPool(): mysql.Pool {
+export function getPool(): mysql.Pool {
   if (!pool) {
     pool = mysql.createPool({
       uri: CONNECTION_STRING,
