@@ -51,44 +51,47 @@ export async function getAiReply(
   postCaption: string,
   week: number
 ): Promise<string> {
-  const apiKey = process.env.GEMINI_API_KEY
+  const apiKey = process.env.OPENROUTER_API_KEY
   if (!apiKey) {
-    throw new Error("Missing GEMINI_API_KEY in server environment")
+    throw new Error("Missing OPENROUTER_API_KEY in server environment")
   }
 
   const systemInstruction = buildSystemInstruction(stageIndex, isStructured, postCaption, week)
-  const historyText = chatHistory
-    .map((message) => `${message.role === "ai" ? "AI" : "學生"}：${message.text}`)
-    .join("\n")
-  const prompt = `${systemInstruction}\n\n目前對話紀錄：\n${historyText}\n\n請直接以 AI 身份回覆下一個問題。`
+  const messages = [
+    { role: "system", content: systemInstruction },
+    ...chatHistory.map((message) => ({
+      role: message.role === "ai" ? "assistant" : "user",
+      content: message.text,
+    })),
+  ]
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${encodeURIComponent(
-    apiKey,
-  )}`
-
-  const response = await fetch(url, {
+  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+      "HTTP-Referer": process.env.NEXT_PUBLIC_SITE_URL || "",
     },
     body: JSON.stringify({
-      contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: { temperature: 0.7, maxOutputTokens: 512 },
+      model: "google/gemma-4-31b-it:free",
+      messages,
+      temperature: 0.7,
+      max_tokens: 512,
     }),
     cache: "no-store",
   })
 
   if (!response.ok) {
     const errorText = await response.text()
-    console.error("Gemini API error:", response.status, errorText)
+    console.error("OpenRouter API error:", response.status, errorText)
     return "目前無法取得 AI 回覆，請稍後再試。"
   }
 
   const result = (await response.json()) as any
-  const candidateText = result?.candidates?.[0]?.content?.parts?.[0]?.text ?? ""
+  const candidateText = result?.choices?.[0]?.message?.content ?? ""
 
   if (!candidateText) {
-    console.error("Gemini response missing text", result)
+    console.error("OpenRouter response missing text", result)
     return "目前無法解析 AI 回覆，請稍後再試。"
   }
 
