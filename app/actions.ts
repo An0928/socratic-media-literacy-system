@@ -62,7 +62,7 @@ export async function getAiReply(
     .join("\n")
   const prompt = `${systemInstruction}\n\n目前對話紀錄：\n${historyText}\n\n請直接以 AI 身份回覆下一個問題。`
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${encodeURIComponent(
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${encodeURIComponent(
     apiKey,
   )}`
 
