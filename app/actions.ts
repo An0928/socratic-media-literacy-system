@@ -48,6 +48,8 @@ function buildSystemInstruction(
       stageInstruction,
       postSpecificGuidance,
       roundInstruction,
+      "請直接回覆，不需要顯示思考過程。",
+      "請用高中生能理解的語言回覆，避免學術用語。每次只問一個問題，句子不超過兩行。",
       "如果學生已經充分完成此階段，請在回覆末尾附加標記 [NEXT_STAGE]；否則就不要附加。每次回答請只用問句，並且只能問與這則貼文相關的問題。",
     ]
       .filter(Boolean)
@@ -66,6 +68,8 @@ function buildSystemInstruction(
     postSpecificGuidance,
     roundInstruction,
     scaffoldInstruction,
+    "請直接回覆，不需要顯示思考過程。",
+    "請用高中生能理解的語言回覆，避免學術用語。每次只問一個問題，句子不超過兩行。",
     "每次只問一個問題。如果學生已充分完成此階段，在回覆末尾加 [NEXT_STAGE]。",
   ]
     .filter(Boolean)
@@ -121,7 +125,7 @@ export async function getAiReply(
       model: "openrouter/free",
       messages,
       temperature: 0.7,
-      max_tokens: 256,
+      max_tokens: 1024,
     }),
     cache: "no-store",
   })
@@ -133,7 +137,8 @@ export async function getAiReply(
   }
 
   const result = (await response.json()) as any
-  const candidateText = result?.choices?.[0]?.message?.content ?? ""
+  const message = result?.choices?.[0]?.message
+  const candidateText = message?.content || message?.reasoning_content || ""
 
   if (!candidateText) {
     console.error("OpenRouter response missing text", result)
