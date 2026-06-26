@@ -118,7 +118,7 @@ export async function getAiReply(
       "HTTP-Referer": process.env.NEXT_PUBLIC_SITE_URL || "",
     },
     body: JSON.stringify({
-      model: "meta-llama/llama-3.3-70b-instruct:free",
+      model: "qwen/qwen3-235b-a22b:free",
       messages,
       temperature: 0.7,
       max_tokens: 256,
