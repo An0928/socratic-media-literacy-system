@@ -23,9 +23,8 @@ type Props = {
 export function AnalysisScreen({ post, existing, onComplete, onExit }: Props) {
   // stageIndex points at the AI turn the student is currently responding to.
   const [stageIndex, setStageIndex] = useState(0)
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    { role: "ai", text: post.script[0].prompt },
-  ])
+  const [messages, setMessages] = useState<ChatMessage[]>([])
+  const [stageMessages, setStageMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState("")
   const [chatDone, setChatDone] = useState(false)
   const [showJudgment, setShowJudgment] = useState(false)
@@ -34,10 +33,80 @@ export function AnalysisScreen({ post, existing, onComplete, onExit }: Props) {
   const isStructured = true
 
   const scrollRef = useRef<HTMLDivElement>(null)
+  const initializedStageRef = useRef<string | null>(null)
+  const postRef = useRef(post)
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" })
   }, [messages])
+
+  useEffect(() => {
+    postRef.current = post
+  }, [post])
+
+  useEffect(() => {
+    setStageIndex(0)
+    setMessages([])
+    setStageMessages([])
+    setInput("")
+    setChatDone(false)
+    setShowJudgment(false)
+    initializedStageRef.current = null
+  }, [post.id])
+
+  useEffect(() => {
+    setStageMessages([])
+    //initializedStageRef.current = null
+  }, [stageIndex])
+
+  useEffect(() => {
+    if (chatDone) return
+
+    const currentPost = postRef.current
+    const initKey = `${currentPost.id}:${stageIndex}`
+
+    if (initializedStageRef.current === initKey) return
+    initializedStageRef.current = initKey
+
+    let ignore = false
+
+    async function initializeStageReply() {
+      setIsLoading(true)
+      try {
+        const stagePrompt = currentPost.script[stageIndex]?.prompt ?? ""
+        const aiReply = await getAiReply(
+          [],
+          stageIndex,
+          isStructured,
+          currentPost.caption,
+          currentPost.week,
+          stagePrompt,
+          undefined,
+          0,
+        )
+        const cleanedReply = aiReply.replace(/\[NEXT_STAGE\]/gi, "").trim()
+
+        if (!ignore) {
+          setMessages((prev) => [...prev, { role: "ai", text: cleanedReply }])
+          setStageMessages((prev) => [...prev, { role: "ai", text: cleanedReply }])
+        }
+      } catch {
+        if (!ignore) {
+          setMessages((prev) => [...prev, { role: "ai", text: "目前無法立即產生引導，請稍後再試。" }])
+        }
+      } finally {
+        if (!ignore) {
+          setIsLoading(false)
+        }
+      }
+    }
+
+    initializeStageReply()
+
+    return () => {
+      ignore = true
+    }
+  }, [chatDone, isStructured, post.id, stageIndex])
 
   // The active stage for the progress bar: number of completed stages.
   const activeStage = chatDone ? STAGE_LABELS.length : stageIndex
@@ -48,20 +117,25 @@ export function AnalysisScreen({ post, existing, onComplete, onExit }: Props) {
     if (!text || isLoading) return
 
     const userMsg: ChatMessage = { role: "user", text }
+    const nextStageMessages = [...stageMessages, userMsg]
+    const turnCount = stageMessages.filter((message) => message.role === "ai").length
+
     setInput("")
     setMessages((prev) => [...prev, userMsg, { role: "ai", text: "..." }])
+    setStageMessages(nextStageMessages)
     setIsLoading(true)
 
     try {
-      const nextMessages = [...messages, userMsg]
       const stagePrompt = post.script[stageIndex]?.prompt ?? ""
       const aiReply = await getAiReply(
-        nextMessages,
+        nextStageMessages,
         stageIndex,
         isStructured,
         post.caption,
         post.week,
         stagePrompt,
+        text,
+        turnCount,
       )
       const shouldAdvance = /\[NEXT_STAGE\]/i.test(aiReply)
       const cleanedReply = aiReply.replace(/\[NEXT_STAGE\]/gi, "").trim()
@@ -70,6 +144,7 @@ export function AnalysisScreen({ post, existing, onComplete, onExit }: Props) {
         const withoutLoading = prev.filter((message) => !(message.role === "ai" && message.text === "..."))
         return [...withoutLoading, { role: "ai", text: cleanedReply }]
       })
+      setStageMessages((prev) => [...prev, { role: "ai", text: cleanedReply }])
 
       if (shouldAdvance && stageIndex < post.script.length - 1) {
         setStageIndex((prev) => Math.min(prev + 1, post.script.length - 1))

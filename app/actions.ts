@@ -29,18 +29,25 @@ function buildSystemInstruction(
   postCaption: string,
   week: number,
   stagePrompt: string,
+  chatHistory: ChatMessage[],
 ) {
   const captionContext = `貼文內容：${postCaption}`
   const stageInstruction = STAGE_INSTRUCTIONS[stageIndex] ?? STAGE_INSTRUCTIONS[0]
   const postSpecificGuidance = stagePrompt
     ? `針對這則貼文，請特別引導學生注意：${stagePrompt}`
     : ""
+  const isFirstRound = chatHistory.length === 0
+
+  const roundInstruction = isFirstRound
+    ? "這是這個階段的第一輪，請只問一個開放式問題，讓學生自由回應。"
+    : "請根據學生的回答決定下一步：若學生回答像『不知道』『沒有』『不清楚』等，先給一個具體的觀察方向提示，再只問一個問題；若學生有實質回答，請繼續深入追問；每次回答都只問一個問題，不要一次問超過一個。"
 
   if (isStructured) {
     return [
       captionContext,
       stageInstruction,
       postSpecificGuidance,
+      roundInstruction,
       "如果學生已經充分完成此階段，請在回覆末尾附加標記 [NEXT_STAGE]；否則就不要附加。每次回答請只用問句，並且只能問與這則貼文相關的問題。",
     ]
       .filter(Boolean)
@@ -57,6 +64,7 @@ function buildSystemInstruction(
     captionContext,
     stageInstruction,
     postSpecificGuidance,
+    roundInstruction,
     scaffoldInstruction,
     "每次只問一個問題。如果學生已充分完成此階段，在回覆末尾加 [NEXT_STAGE]。",
   ]
@@ -71,7 +79,13 @@ export async function getAiReply(
   postCaption: string,
   week: number,
   stagePrompt: string,
+  latestUserInput?: string,
+  turnCount: number = 0,
 ): Promise<string> {
+  if (turnCount >= 3) {
+    return "你已經在這個階段思考了一段時間，做得很好！讓我們繼續下一個問題。[NEXT_STAGE]"
+  }
+
   const apiKey = process.env.OPENROUTER_API_KEY
   if (!apiKey) {
     throw new Error("Missing OPENROUTER_API_KEY in server environment")
@@ -83,6 +97,7 @@ export async function getAiReply(
     postCaption,
     week,
     stagePrompt,
+    chatHistory,
   )
   const messages = [
     { role: "system", content: systemInstruction },
@@ -90,6 +105,9 @@ export async function getAiReply(
       role: message.role === "ai" ? "assistant" : "user",
       content: message.text,
     })),
+    ...(latestUserInput !== undefined
+      ? [{ role: "user" as const, content: latestUserInput }]
+      : []),
   ]
 
   const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
@@ -100,10 +118,10 @@ export async function getAiReply(
       "HTTP-Referer": process.env.NEXT_PUBLIC_SITE_URL || "",
     },
     body: JSON.stringify({
-      model: "google/gemma-4-31b-it:free",
+      model: "meta-llama/llama-3.3-70b-instruct:free",
       messages,
       temperature: 0.7,
-      max_tokens: 512,
+      max_tokens: 256,
     }),
     cache: "no-store",
   })
