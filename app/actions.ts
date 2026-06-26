@@ -118,7 +118,7 @@ export async function getAiReply(
       "HTTP-Referer": process.env.NEXT_PUBLIC_SITE_URL || "",
     },
     body: JSON.stringify({
-      model: "qwen/qwen3-30b-a3b:free",
+      model: "openrouter/free",
       messages,
       temperature: 0.7,
       max_tokens: 256,
