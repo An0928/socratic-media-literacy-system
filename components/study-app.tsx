@@ -20,6 +20,7 @@ type Screen = "welcome" | "progress" | "analysis"
 
 export function StudyApp({ initialState }: { initialState: StudentState | null }) {
   const [state, setState] = useState<StudentState | null>(initialState)
+  const isAdmin = state?.studentId === "admin"
   const [screen, setScreen] = useState<Screen>(
     initialState && !initialState.hasSeenWelcome ? "welcome" : "progress",
   )
@@ -70,10 +71,11 @@ export function StudyApp({ initialState }: { initialState: StudentState | null }
       return
     }
 
+    const resolvedPostId = postId
     let ignore = false
 
     async function loadActivePost() {
-      const post = await getPostByIdAction(postId)
+      const post = await getPostByIdAction(resolvedPostId)
       if (!ignore) setActivePost(post)
     }
 
@@ -137,6 +139,8 @@ export function StudyApp({ initialState }: { initialState: StudentState | null }
       <AnalysisScreen
         post={activePost}
         existing={state.submissions.find((submission) => submission.postId === activePostId)}
+        isStructured={state.isStructured}
+        canSaveSubmission={!isAdmin}
         onComplete={handleAnalysisComplete}
         onExit={() => {
           setActivePost(null)
@@ -152,6 +156,7 @@ export function StudyApp({ initialState }: { initialState: StudentState | null }
       studentId={state.studentId}
       currentWeek={currentWeek}
       completedIds={completedIds}
+      isAdmin={isAdmin}
       onOpenPost={openPost}
       onLogout={handleLogout}
     />

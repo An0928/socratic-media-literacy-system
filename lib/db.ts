@@ -53,8 +53,12 @@ async function ensureSchema(): Promise<void> {
         CREATE TABLE IF NOT EXISTS students (
           student_id VARCHAR(64) NOT NULL PRIMARY KEY,
           has_seen_welcome TINYINT(1) NOT NULL DEFAULT 0,
+          is_structured TINYINT(1) NOT NULL DEFAULT 1,
           created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
         )
+      `)
+      await db.query(`
+        ALTER TABLE students ADD COLUMN IF NOT EXISTS is_structured TINYINT(1) NOT NULL DEFAULT 1
       `)
       await db.query(`
         CREATE TABLE IF NOT EXISTS submissions (
@@ -80,7 +84,7 @@ async function ensureSchema(): Promise<void> {
 // In-memory fallback implementation (preview only)
 // ---------------------------------------------------------------------------
 
-type MemStudent = { hasSeenWelcome: boolean }
+type MemStudent = { hasSeenWelcome: boolean; isStructured: boolean }
 const memStudents = new Map<string, MemStudent>()
 const memSubmissions = new Map<string, Map<string, Submission>>()
 
@@ -88,23 +92,36 @@ const memSubmissions = new Map<string, Map<string, Submission>>()
 // Public API
 // ---------------------------------------------------------------------------
 
-export async function getOrCreateStudent(studentId: string): Promise<{ hasSeenWelcome: boolean }> {
+export async function getOrCreateStudent(
+  studentId: string,
+  isStructured?: boolean,
+): Promise<{ hasSeenWelcome: boolean; isStructured: boolean }> {
   if (useMysql) {
     await ensureSchema()
     const db = getPool()
-    await db.query("INSERT IGNORE INTO students (student_id) VALUES (?)", [studentId])
+    if (isStructured === undefined) {
+      await db.query("INSERT IGNORE INTO students (student_id) VALUES (?)", [studentId])
+    } else {
+      await db.query("INSERT IGNORE INTO students (student_id, is_structured) VALUES (?, ?)", [studentId, isStructured ? 1 : 0])
+    }
     const [rows] = await db.query<mysql.RowDataPacket[]>(
-      "SELECT has_seen_welcome FROM students WHERE student_id = ?",
+      "SELECT has_seen_welcome, is_structured FROM students WHERE student_id = ?",
       [studentId],
     )
     const row = rows[0]
-    return { hasSeenWelcome: Boolean(row?.has_seen_welcome) }
+    return {
+      hasSeenWelcome: Boolean(row?.has_seen_welcome),
+      isStructured: Boolean(row?.is_structured),
+    }
   }
 
   if (!memStudents.has(studentId)) {
-    memStudents.set(studentId, { hasSeenWelcome: false })
+    memStudents.set(studentId, { hasSeenWelcome: false, isStructured: isStructured ?? true })
   }
-  return { hasSeenWelcome: memStudents.get(studentId)!.hasSeenWelcome }
+  return {
+    hasSeenWelcome: memStudents.get(studentId)!.hasSeenWelcome,
+    isStructured: memStudents.get(studentId)!.isStructured,
+  }
 }
 
 export async function markWelcomeSeen(studentId: string): Promise<void> {

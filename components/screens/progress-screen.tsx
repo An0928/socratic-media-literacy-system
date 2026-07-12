@@ -12,6 +12,7 @@ type Props = {
   studentId: string
   currentWeek: number
   completedIds: Set<string>
+  isAdmin?: boolean
   onOpenPost: (post: Post) => void
   onLogout: () => void
 }
@@ -22,6 +23,7 @@ export function ProgressScreen({
   studentId,
   currentWeek,
   completedIds,
+  isAdmin = false,
   onOpenPost,
   onLogout,
 }: Props) {
@@ -56,6 +58,7 @@ export function ProgressScreen({
   const currentPostId = weekPosts.find((post) => !completedIds.has(post.id))?.id ?? null
 
   function tileState(post: Post, index: number): TileState {
+    if (isAdmin) return "current"
     if (completedIds.has(post.id)) return "completed"
     if (post.id === currentPostId) return "current"
     // A later post is locked until the earlier one in the week is done.
@@ -63,8 +66,9 @@ export function ProgressScreen({
     return earlierDone ? "current" : "locked"
   }
 
-  const encouragement =
-    completedThisWeek === 0
+  const encouragement = isAdmin
+    ? "管理員模式已啟用，所有貼文都可直接開啟檢視。"
+    : completedThisWeek === 0
       ? "新的一週開始了，一起來分析第一則貼文吧！"
       : completedThisWeek < POSTS_PER_WEEK
         ? "做得很好，再完成一則就達成本週目標了！"
@@ -108,20 +112,43 @@ export function ProgressScreen({
         </section>
 
         {/* Post tiles */}
-        <section className="mt-5 grid gap-4 sm:grid-cols-2">
-          {weekPosts.length === 0 ? (
-            <p className="text-sm text-muted-foreground sm:col-span-2">載入貼文中…</p>
-          ) : (
-            weekPosts.map((post, index) => (
-              <PostTile
-                key={post.id}
-                post={post}
-                state={tileState(post, index)}
-                onOpen={() => onOpenPost(post)}
-              />
-            ))
-          )}
-        </section>
+        {isAdmin ? (
+          <section className="mt-5 flex flex-col gap-4">
+            {Object.entries(postsByWeek)
+              .sort(([a], [b]) => Number(a) - Number(b))
+              .filter(([, weekPosts]) => weekPosts.length > 0)
+              .map(([week, weekPosts]) => (
+                <div key={week} className="rounded-2xl border border-border bg-background/60 p-4">
+                  <h2 className="mb-3 text-sm font-bold text-card-foreground">第 {week} 週</h2>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    {weekPosts.map((post, index) => (
+                      <PostTile
+                        key={post.id}
+                        post={post}
+                        state={tileState(post, index)}
+                        onOpen={() => onOpenPost(post)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ))}
+          </section>
+        ) : (
+          <section className="mt-5 grid gap-4 sm:grid-cols-2">
+            {weekPosts.length === 0 ? (
+              <p className="text-sm text-muted-foreground sm:col-span-2">載入貼文中…</p>
+            ) : (
+              weekPosts.map((post, index) => (
+                <PostTile
+                  key={post.id}
+                  post={post}
+                  state={tileState(post, index)}
+                  onOpen={() => onOpenPost(post)}
+                />
+              ))
+            )}
+          </section>
+        )}
 
         {/* Overall progress across weeks */}
         <section className="mt-6 rounded-3xl border border-border bg-card p-6 shadow-sm">

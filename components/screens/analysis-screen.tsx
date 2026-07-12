@@ -16,11 +16,13 @@ type ChatMessage = { role: "ai" | "user"; text: string }
 type Props = {
   post: Post
   existing?: Submission
+  isStructured?: boolean
+  canSaveSubmission?: boolean
   onComplete: () => void
   onExit: () => void
 }
 
-export function AnalysisScreen({ post, existing, onComplete, onExit }: Props) {
+export function AnalysisScreen({ post, existing, onComplete, onExit, isStructured: isStructuredProp = true, canSaveSubmission = true }: Props) {
   // stageIndex points at the AI turn the student is currently responding to.
   const [stageIndex, setStageIndex] = useState(0)
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -30,10 +32,11 @@ export function AnalysisScreen({ post, existing, onComplete, onExit }: Props) {
   const [showJudgment, setShowJudgment] = useState(false)
   const [pending, startTransition] = useTransition()
   const [isLoading, setIsLoading] = useState(false)
-  const isStructured = true
+  const isStructured = isStructuredProp
 
   const scrollRef = useRef<HTMLDivElement>(null)
   const initializedStageRef = useRef<string | null>(null)
+  const skipInitRef = useRef(false)
   const postRef = useRef(post)
 
   useEffect(() => {
@@ -52,6 +55,7 @@ export function AnalysisScreen({ post, existing, onComplete, onExit }: Props) {
     setChatDone(false)
     setShowJudgment(false)
     initializedStageRef.current = null
+    skipInitRef.current = false
   }, [post.id])
 
   useEffect(() => {
@@ -61,6 +65,11 @@ export function AnalysisScreen({ post, existing, onComplete, onExit }: Props) {
 
   useEffect(() => {
     if (chatDone) return
+
+    if (skipInitRef.current) {
+      skipInitRef.current = false
+      return
+    }
 
     const currentPost = postRef.current
     const initKey = `${currentPost.id}:${stageIndex}`
@@ -147,10 +156,11 @@ export function AnalysisScreen({ post, existing, onComplete, onExit }: Props) {
       setStageMessages((prev) => [...prev, { role: "ai", text: cleanedReply }])
 
       if (shouldAdvance && stageIndex < post.script.length - 1) {
+        skipInitRef.current = true
         setStageIndex((prev) => Math.min(prev + 1, post.script.length - 1))
       }
 
-      if (stageIndex >= post.script.length - 1) {
+      if (stageIndex === post.script.length - 1) {
         setChatDone(true)
       }
     } finally {
@@ -165,6 +175,13 @@ export function AnalysisScreen({ post, existing, onComplete, onExit }: Props) {
   }
 
   function handleJudgment(judgment: Judgment) {
+    if (!canSaveSubmission) {
+      startTransition(() => {
+        onComplete()
+      })
+      return
+    }
+
     startTransition(async () => {
       await submitJudgment(post.id, judgment, buildChatLog())
     })

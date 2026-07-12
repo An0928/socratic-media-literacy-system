@@ -8,14 +8,22 @@ import { Input } from "@/components/ui/input"
 
 export function LoginScreen({ onLoggedIn }: { onLoggedIn: (state: StudentState) => void }) {
   const [studentId, setStudentId] = useState("")
+  const [groupCode, setGroupCode] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
+
+    const normalizedGroupCode = groupCode.trim().toUpperCase()
+    if (normalizedGroupCode !== "A" && normalizedGroupCode !== "B") {
+      setError("請輸入有效的組別（A 或 B）")
+      return
+    }
+
     startTransition(async () => {
-      const res = await login(studentId)
+      const res = await login(studentId, normalizedGroupCode)
       if (!res.ok || !res.state) {
         setError(res.error ?? "登入失敗，請再試一次")
         return
@@ -56,12 +64,29 @@ export function LoginScreen({ onLoggedIn }: { onLoggedIn: (state: StudentState) 
                 className="h-12 rounded-xl text-base"
                 aria-invalid={Boolean(error)}
               />
-              {error ? <p className="text-sm font-medium text-destructive">{error}</p> : null}
             </div>
+
+            <div className="flex flex-col gap-2">
+              <label htmlFor="groupCode" className="text-sm font-semibold text-card-foreground">
+                組別
+              </label>
+              <Input
+                id="groupCode"
+                value={groupCode}
+                onChange={(e) => setGroupCode(e.target.value)}
+                placeholder="A 或 B"
+                autoComplete="off"
+                inputMode="text"
+                className="h-12 rounded-xl text-base"
+                aria-invalid={Boolean(error)}
+              />
+            </div>
+
+            {error ? <p className="text-sm font-medium text-destructive">{error}</p> : null}
 
             <Button
               type="submit"
-              disabled={pending || !studentId.trim()}
+              disabled={pending || !studentId.trim() || !groupCode.trim()}
               className="h-12 rounded-xl bg-primary text-base font-bold text-primary-foreground shadow-sm transition-transform hover:bg-primary/90 active:scale-[0.98]"
             >
               {pending ? "登入中…" : "開始"}
