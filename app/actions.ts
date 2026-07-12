@@ -25,6 +25,67 @@ const STAGE_INSTRUCTIONS = [
 
 type ChatMessage = { role: "ai" | "user"; text: string }
 
+async function callGemini(systemInstruction: string, chatHistory: ChatMessage[], latestUserInput?: string): Promise<string> {
+  const apiKey = process.env.GEMINI_API_KEY
+  if (!apiKey) throw new Error("Missing GEMINI_API_KEY")
+
+  const historyText = chatHistory.map((m) => `${m.role === "ai" ? "AI" : "學生"}：${m.text}`).join("\n")
+  const latestText = latestUserInput !== undefined ? `\n學生：${latestUserInput}` : ""
+  const prompt = `${systemInstruction}\n\n目前對話紀錄：\n${historyText}${latestText}\n\n請直接以AI身份回覆下一句`
+
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${encodeURIComponent(apiKey)}`
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: { temperature: 0.7, maxOutputTokens: 1024 },
+    }),
+    cache: "no-store",
+  })
+
+  if (!response.ok) {
+    console.error("Gemini API error:", response.status, await response.text())
+    return "目前無法取得 AI 回覆，請稍後再試。"
+  }
+
+  const result = await response.json()
+  return result?.candidates?.[0]?.content?.parts?.[0]?.text ?? ""
+}
+
+async function callOpenAICompatible(
+  systemInstruction: string,
+  chatHistory: ChatMessage[],
+  latestUserInput: string | undefined,
+  config: { baseUrl: string; apiKey: string; model: string; extraHeaders?: Record<string, string> },
+): Promise<string> {
+  const messages = [
+    { role: "system", content: systemInstruction },
+    ...chatHistory.map((m) => ({ role: m.role === "ai" ? "assistant" : "user", content: m.text })),
+    ...(latestUserInput !== undefined ? [{ role: "user" as const, content: latestUserInput }] : []),
+  ]
+
+  const response = await fetch(config.baseUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${config.apiKey}`,
+      ...config.extraHeaders,
+    },
+    body: JSON.stringify({ model: config.model, messages, temperature: 0.7, max_tokens: 1024 }),
+    cache: "no-store",
+  })
+
+  if (!response.ok) {
+    console.error("API error:", response.status, await response.text())
+    return "目前無法取得 AI 回覆，請稍後再試。"
+  }
+
+  const result = await response.json()
+  const message = result?.choices?.[0]?.message
+  return message?.content || message?.reasoning_content || ""
+}
+
 function isMeaninglessResponse(text: string): boolean {
   const meaninglessPatterns = [
     "不知道",
@@ -139,11 +200,6 @@ export async function getAiReply(
     }
     return "你已經在這個階段思考了一段時間，做得很好！現在請問：這則貼文中哪一個細節最值得你下一步再追問？[NEXT_STAGE]"
   }
-  const apiKey = process.env.OPENROUTER_API_KEY
-  if (!apiKey) {
-    throw new Error("Missing OPENROUTER_API_KEY in server environment")
-  }
-
   const systemInstruction = buildSystemInstruction(
     stageIndex,
     isStructured,
@@ -152,51 +208,38 @@ export async function getAiReply(
     stagePrompt,
     chatHistory,
   )
-  const messages = [
-    { role: "system", content: systemInstruction },
-    ...chatHistory.map((message) => ({
-      role: message.role === "ai" ? "assistant" : "user",
-      content: message.text,
-    })),
-    ...(latestUserInput !== undefined
-      ? [{ role: "user" as const, content: latestUserInput }]
-      : []),
-  ]
+  const provider = process.env.AI_PROVIDER || "gemini"
 
-  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-      "HTTP-Referer": process.env.NEXT_PUBLIC_SITE_URL || "",
-    },
-    body: JSON.stringify({
-      model: "openrouter/free",
-      messages,
-      temperature: 0.7,
-      max_tokens: 1024,
-    }),
-    cache: "no-store",
-  })
-
-  if (!response.ok) {
-    const errorText = await response.text()
-    console.error("OpenRouter API error:", response.status, errorText)
+  let candidateText = ""
+  try {
+    if (provider === "gemini") {
+      candidateText = await callGemini(systemInstruction, chatHistory, latestUserInput)
+    } else if (provider === "openrouter") {
+      candidateText = await callOpenAICompatible(systemInstruction, chatHistory, latestUserInput, {
+        baseUrl: "https://openrouter.ai/api/v1/chat/completions",
+        apiKey: process.env.OPENROUTER_API_KEY || "",
+        model: "meta-llama/llama-3.3-70b-instruct:free",
+        extraHeaders: { "HTTP-Referer": process.env.NEXT_PUBLIC_SITE_URL || "" },
+      })
+    } else if (provider === "openai") {
+      candidateText = await callOpenAICompatible(systemInstruction, chatHistory, latestUserInput, {
+        baseUrl: "https://api.openai.com/v1/chat/completions",
+        apiKey: process.env.OPENAI_API_KEY || "",
+        model: "gpt-4o-mini",
+      })
+    } else {
+      throw new Error(`Unsupported AI provider: ${provider}`)
+    }
+  } catch (err) {
+    console.error("AI provider error:", err)
     return "目前無法取得 AI 回覆，請稍後再試。"
   }
 
-  const result = (await response.json()) as any
-  const message = result?.choices?.[0]?.message
-  const candidateText = message?.content || message?.reasoning_content || ""
-
-  // 移除可能的思考標記
   const cleanedText = candidateText
     .replace(/<think>[\s\S]*?<\/think>/gi, "")
-    .replace(/^(嗯|讓我想想|我需要|根據指示)[，,][\s\S]*?(?=\n\n|$)/m, "")
     .trim()
 
   if (!cleanedText) {
-    console.error("OpenRouter response missing text", result)
     return "請再說明一下你的想法。"
   }
 
