@@ -218,7 +218,7 @@ export async function getAiReply(
       candidateText = await callOpenAICompatible(systemInstruction, chatHistory, latestUserInput, {
         baseUrl: "https://openrouter.ai/api/v1/chat/completions",
         apiKey: process.env.OPENROUTER_API_KEY || "",
-        model: "meta-llama/llama-3.3-70b-instruct:free",
+        model: "openrouter/free",
         extraHeaders: { "HTTP-Referer": process.env.NEXT_PUBLIC_SITE_URL || "" },
       })
     } else if (provider === "openai") {
