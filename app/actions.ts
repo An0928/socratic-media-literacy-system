@@ -23,6 +23,23 @@ const STAGE_INSTRUCTIONS = [
 
 type ChatMessage = { role: "ai" | "user"; text: string }
 
+function isMeaninglessResponse(text: string): boolean {
+  const meaninglessPatterns = [
+    "不知道",
+    "沒有",
+    "不清楚",
+    "沒差",
+    "隨便",
+    "不確定",
+    "沒感覺",
+    "沒想法",
+    "還好",
+  ]
+  const trimmed = text.trim()
+  if (trimmed.length <= 2) return true
+  return meaninglessPatterns.some((pattern) => trimmed === pattern || trimmed.includes(pattern))
+}
+
 function buildSystemInstruction(
   stageIndex: number,
   isStructured: boolean,
@@ -73,18 +90,14 @@ function buildSystemInstruction(
 
   return [
     captionContext,
-    stageInstruction,
-    postSpecificGuidance,
-    roundInstruction,
-    scaffoldInstruction,
+    "你是一個媒體素養引導助手，針對這則貼文對學生提出開放式問題。",
+    "根據學生的回答進行追問，提問不需遵循任何特定教學順序或階段。",
+    "若學生回答「不知道」「沒有」「不清楚」等無實質內容的回答，不要視為完成一輪，請換一個角度重新引導，再問一次相關問題。",
+    "當你判斷學生已經對這則貼文進行充分思考，在回覆末尾加上 [NEXT_STAGE]。",
     "請直接回覆，不需要顯示思考過程。",
     "請務必使用繁體中文回覆。",
-    "請用高中生能理解的語言回覆，避免學術用語。每次只問一個問題，句子不超過兩行。",
-    "如果學生已經指出至少一個具體的質疑或問題，就可以在回覆末尾加 [NEXT_STAGE]。",
-    "同一個方向的問題不要重複問超過一次，如果學生已表示不知道，換一個角度繼續引導。",
-    "當學生給出有實質內容的回答時，用一句話簡短回應他說的重點（例如「你注意到了X」或「這個觀察很關鍵」），然後再提出下一個問題，讓對話有連貫感。不要用誇張的讚美如「你說得太棒了」。",
-    "當你判斷學生完成此階段需要加 [NEXT_STAGE] 時，在 [NEXT_STAGE] 標記之前，用一句話肯定學生的思考，並同時帶出下一個階段的第一個引導問題。例如：「你已經注意到這個重點了！[NEXT_STAGE] 接下來我們想想，這個說法背後有什麼假設？」不要只輸出 [NEXT_STAGE] 而沒有後續問題。",
-    "每次只問一個問題。如果學生已充分完成此階段，在回覆末尾加 [NEXT_STAGE]。",
+    "請用高中生能理解的語言回覆，句子不超過兩行，每次只問一個問題。",
+    "當學生給出有實質內容的回答時，先用一句話簡短肯定重點，再提出下一個問題。",
   ]
     .filter(Boolean)
     .join("\n")
@@ -100,7 +113,11 @@ export async function getAiReply(
   latestUserInput?: string,
   turnCount: number = 0,
 ): Promise<string> {
-  if (turnCount >= 3) {
+  if (!isStructured) {
+    if (turnCount >= 8) {
+      return "我們已經從很多角度討論了這則貼文，你準備好做出判斷了嗎？[NEXT_STAGE]"
+    }
+  } else if (turnCount >= 3) {
     if (stageIndex === 3) {
       return "你已經從多個角度思考過這則貼文，做得很好！現在請做出你的判斷。[NEXT_STAGE]"
     }

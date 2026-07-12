@@ -34,6 +34,23 @@ export function AnalysisScreen({ post, existing, onComplete, onExit, isStructure
   const [isLoading, setIsLoading] = useState(false)
   const isStructured = isStructuredProp
 
+  function isMeaninglessResponse(text: string): boolean {
+    const meaninglessPatterns = [
+      "不知道",
+      "沒有",
+      "不清楚",
+      "沒差",
+      "隨便",
+      "不確定",
+      "沒感覺",
+      "沒想法",
+      "還好",
+    ]
+    const trimmed = text.trim()
+    if (trimmed.length <= 2) return true
+    return meaninglessPatterns.some((pattern) => trimmed === pattern || trimmed.includes(pattern))
+  }
+
   const scrollRef = useRef<HTMLDivElement>(null)
   const initializedStageRef = useRef<string | null>(null)
   const skipInitRef = useRef(false)
@@ -119,6 +136,7 @@ export function AnalysisScreen({ post, existing, onComplete, onExit, isStructure
 
   // The active stage for the progress bar: number of completed stages.
   const activeStage = chatDone ? STAGE_LABELS.length : stageIndex
+  const showStageProgress = isStructured
 
   async function handleSend(e: React.FormEvent) {
     e.preventDefault()
@@ -127,7 +145,10 @@ export function AnalysisScreen({ post, existing, onComplete, onExit, isStructure
 
     const userMsg: ChatMessage = { role: "user", text }
     const nextStageMessages = [...stageMessages, userMsg]
-    const turnCount = stageMessages.filter((message) => message.role === "ai").length
+    const isMeaningless = isMeaninglessResponse(text)
+    const turnCount = isStructured && !isMeaningless
+      ? stageMessages.filter((message) => message.role === "ai").length + 1
+      : stageMessages.filter((message) => message.role === "ai").length
 
     setInput("")
     setMessages((prev) => [...prev, userMsg, { role: "ai", text: "..." }])
@@ -155,12 +176,14 @@ export function AnalysisScreen({ post, existing, onComplete, onExit, isStructure
       })
       setStageMessages((prev) => [...prev, { role: "ai", text: cleanedReply }])
 
-      if (shouldAdvance && stageIndex < post.script.length - 1) {
+      if (!isStructured && shouldAdvance) {
+        setChatDone(true)
+      } else if (shouldAdvance && stageIndex < post.script.length - 1) {
         skipInitRef.current = true
         setStageIndex((prev) => Math.min(prev + 1, post.script.length - 1))
       }
 
-      if (stageIndex === post.script.length - 1) {
+      if (isStructured && stageIndex === post.script.length - 1) {
         setChatDone(true)
       }
     } finally {
@@ -225,7 +248,7 @@ export function AnalysisScreen({ post, existing, onComplete, onExit, isStructure
 
         {/* Right: chat */}
         <div className="flex min-h-[60vh] flex-1 flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-sm lg:h-[calc(100vh-7rem)]">
-          <StageProgress activeStage={activeStage} />
+          {showStageProgress ? <StageProgress activeStage={activeStage} /> : null}
 
           <div ref={scrollRef} className="flex-1 space-y-4 overflow-y-auto px-4 py-5">
             {messages.map((m, i) => (
