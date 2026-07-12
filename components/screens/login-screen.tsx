@@ -17,8 +17,8 @@ export function LoginScreen({ onLoggedIn }: { onLoggedIn: (state: StudentState) 
     setError(null)
 
     const normalizedGroupCode = groupCode.trim().toUpperCase()
-    if (normalizedGroupCode !== "A" && normalizedGroupCode !== "B") {
-      setError("請輸入有效的組別（A 或 B）")
+    if (normalizedGroupCode !== "0" && normalizedGroupCode !== "1") {
+      setError("請輸入有效的組別（0 或 1）")
       return
     }
 
@@ -74,7 +74,7 @@ export function LoginScreen({ onLoggedIn }: { onLoggedIn: (state: StudentState) 
                 id="groupCode"
                 value={groupCode}
                 onChange={(e) => setGroupCode(e.target.value)}
-                placeholder="A 或 B"
+                placeholder="0 或 1"
                 autoComplete="off"
                 inputMode="text"
                 className="h-12 rounded-xl text-base"

@@ -14,6 +14,8 @@ import { getPostById, getPostsByWeek, type Post } from "@/lib/study-data"
 
 const COOKIE = "mlt_student"
 
+const POST_BOUND_INSTRUCTION = "你提出的問題必須引導學生從『這則貼文本身』尋找線索（例如用字、來源標示、數據呈現方式），不要問學生去外部查證研究或資料，只討論貼文內容本身。"
+const FINAL_REPLY_INSTRUCTION = "你必須直接輸出給學生看的最終回覆，絕對不要輸出思考過程、自我對話、分析步驟或任何 <think> 標籤內容。"
 const STAGE_INSTRUCTIONS = [
   '你現在協助學生進行「觀察」階段。請根據貼文內容和對話歷史，引導學生提出觀察性的問題，不要直接給答案。',
   '你現在協助學生進行「挑戰假設」階段。請引導學生思考貼文的假設與邏輯，依舊只用問句，不要給出結論。',
@@ -49,10 +51,19 @@ function buildSystemInstruction(
   chatHistory: ChatMessage[],
 ) {
   const captionContext = `貼文內容：${postCaption}`
-  const stageInstruction =
+  const stageInstructionBase =
     stageIndex === 3
       ? "你現在協助學生進行「判斷」階段。請幫助學生整理前面各階段的觀察與想法，確認他已經充分思考，這一階段不再提出新的問題，而是引導學生整理內容並準備做出判斷。"
       : STAGE_INSTRUCTIONS[stageIndex] ?? STAGE_INSTRUCTIONS[0]
+  const stageInstruction = [
+    stageInstructionBase,
+    stageIndex === 0
+      ? "如果學生一開始就直接做出真假判斷，不要否定他，而是引導他說明「為什麼」這樣覺得，藉此進入觀察階段。"
+      : "",
+    POST_BOUND_INSTRUCTION,
+  ]
+    .filter(Boolean)
+    .join("\n")
   const postSpecificGuidance = stagePrompt
     ? `針對這則貼文，請特別引導學生注意：${stagePrompt}`
     : ""
@@ -71,6 +82,7 @@ function buildSystemInstruction(
   if (isStructured) {
     return [
       captionContext,
+      FINAL_REPLY_INSTRUCTION,
       stageInstruction,
       postSpecificGuidance,
       roundInstruction,
@@ -83,6 +95,7 @@ function buildSystemInstruction(
       "當學生給出有實質內容的回答時，用一句話簡短回應他說的重點（例如「你注意到了X」或「這個觀察很關鍵」），然後再提出下一個問題，讓對話有連貫感。不要用誇張的讚美如「你說得太棒了」。",
       "當你判斷學生完成此階段需要加 [NEXT_STAGE] 時，在 [NEXT_STAGE] 標記之前，用一句話肯定學生的思考，並同時帶出下一個階段的第一個引導問題。例如：「你已經注意到這個重點了！[NEXT_STAGE] 接下來我們想想，這個說法背後有什麼假設？」不要只輸出 [NEXT_STAGE] 而沒有後續問題。",
       "如果學生已經充分完成此階段，請在回覆末尾附加標記 [NEXT_STAGE]；否則就不要附加。每次回答請只用問句，並且只能問與這則貼文相關的問題。",
+      "你只能用問句進行引導，絕對不要直接給出答案或結論。",
     ]
       .filter(Boolean)
       .join("\n")
@@ -90,7 +103,9 @@ function buildSystemInstruction(
 
   return [
     captionContext,
+    FINAL_REPLY_INSTRUCTION,
     "你是一個媒體素養引導助手，針對這則貼文對學生提出開放式問題。",
+    stageInstruction,
     "根據學生的回答進行追問，提問不需遵循任何特定教學順序或階段。",
     "若學生回答「不知道」「沒有」「不清楚」等無實質內容的回答，不要視為完成一輪，請換一個角度重新引導，再問一次相關問題。",
     "當你判斷學生已經對這則貼文進行充分思考，在回覆末尾加上 [NEXT_STAGE]。",
@@ -98,6 +113,7 @@ function buildSystemInstruction(
     "請務必使用繁體中文回覆。",
     "請用高中生能理解的語言回覆，句子不超過兩行，每次只問一個問題。",
     "當學生給出有實質內容的回答時，先用一句話簡短肯定重點，再提出下一個問題。",
+    "你只能用問句進行引導，絕對不要直接給出答案或結論。",
   ]
     .filter(Boolean)
     .join("\n")
@@ -119,9 +135,9 @@ export async function getAiReply(
     }
   } else if (turnCount >= 3) {
     if (stageIndex === 3) {
-      return "你已經從多個角度思考過這則貼文，做得很好！現在請做出你的判斷。[NEXT_STAGE]"
+      return "你已經從多個角度思考過這則貼文，做得很好！現在請問：哪一個你最支持的判斷，最能被這則貼文中的證據支持？[NEXT_STAGE]"
     }
-    return "你已經在這個階段思考了一段時間，做得很好！讓我們繼續下一個問題。[NEXT_STAGE]"
+    return "你已經在這個階段思考了一段時間，做得很好！現在請問：這則貼文中哪一個細節最值得你下一步再追問？[NEXT_STAGE]"
   }
   const apiKey = process.env.OPENROUTER_API_KEY
   if (!apiKey) {
@@ -173,12 +189,18 @@ export async function getAiReply(
   const message = result?.choices?.[0]?.message
   const candidateText = message?.content || message?.reasoning_content || ""
 
-  if (!candidateText) {
+  // 移除可能的思考標記
+  const cleanedText = candidateText
+    .replace(/<think>[\s\S]*?<\/think>/gi, "")
+    .replace(/^(嗯|讓我想想|我需要|根據指示)[，,][\s\S]*?(?=\n\n|$)/m, "")
+    .trim()
+
+  if (!cleanedText) {
     console.error("OpenRouter response missing text", result)
-    return "目前無法解析 AI 回覆，請稍後再試。"
+    return "請再說明一下你的想法。"
   }
 
-  return candidateText
+  return cleanedText
 }
 
 export type StudentState = {
@@ -251,11 +273,11 @@ export async function login(
   }
 
   const normalizedGroupCode = groupCode.trim().toUpperCase()
-  if (normalizedGroupCode !== "A" && normalizedGroupCode !== "B") {
-    return { ok: false, error: "請輸入有效的組別（A 或 B）" }
+  if (normalizedGroupCode !== "0" && normalizedGroupCode !== "1") {
+    return { ok: false, error: "請輸入有效的組別（0 或 1）" }
   }
 
-  const isStructured = normalizedGroupCode === "A"
+  const isStructured = normalizedGroupCode === "1"
   const student = await getOrCreateStudent(id, isStructured)
   const store = await cookies()
   store.set(COOKIE, id, {
