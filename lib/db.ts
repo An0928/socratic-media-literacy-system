@@ -58,9 +58,6 @@ async function ensureSchema(): Promise<void> {
         )
       `)
       await db.query(`
-        ALTER TABLE students ADD COLUMN IF NOT EXISTS is_structured TINYINT(1) NOT NULL DEFAULT 1
-      `)
-      await db.query(`
         CREATE TABLE IF NOT EXISTS submissions (
           id INT AUTO_INCREMENT PRIMARY KEY,
           student_id VARCHAR(64) NOT NULL,
