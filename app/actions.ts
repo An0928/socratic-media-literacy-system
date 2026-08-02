@@ -63,6 +63,7 @@ async function callOpenAICompatible(
     model: string
     extraHeaders?: Record<string, string>
     useMaxCompletionTokens?: boolean
+    useDefaultTemperature?: boolean
   },
 ): Promise<string> {
   const messages = [
@@ -71,6 +72,7 @@ async function callOpenAICompatible(
     ...(latestUserInput !== undefined ? [{ role: "user" as const, content: latestUserInput }] : []),
   ]
 
+  const temperatureParam = config.useDefaultTemperature ? {} : { temperature: 0.7 }
   const tokenParam = config.useMaxCompletionTokens
     ? { max_completion_tokens: 1024 }
     : { max_tokens: 1024 }
@@ -82,7 +84,7 @@ async function callOpenAICompatible(
       Authorization: `Bearer ${config.apiKey}`,
       ...config.extraHeaders,
     },
-    body: JSON.stringify({ model: config.model, messages, temperature: 0.7, ...tokenParam }),
+    body: JSON.stringify({ model: config.model, messages, ...temperatureParam, ...tokenParam }),
     cache: "no-store",
   })
 
@@ -243,6 +245,7 @@ export async function getAiReply(
         apiKey: process.env.AZURE_OPENAI_API_KEY || "",
         model: "gpt-5-mini",
         useMaxCompletionTokens: true,
+        useDefaultTemperature: true,
       })
     } else {
       throw new Error(`Unsupported AI provider: ${provider}`)
