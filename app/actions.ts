@@ -227,6 +227,12 @@ export async function getAiReply(
         apiKey: process.env.OPENAI_API_KEY || "",
         model: "gpt-4o-mini",
       })
+    } else if (provider === "azure") {
+      candidateText = await callOpenAICompatible(systemInstruction, chatHistory, latestUserInput, {
+        baseUrl: "https://thesisopenaisocratic-resource.services.ai.azure.com/openai/v1/chat/completions",
+        apiKey: process.env.AZURE_OPENAI_API_KEY || "",
+        model: "gpt-5-mini",
+      })
     } else {
       throw new Error(`Unsupported AI provider: ${provider}`)
     }
