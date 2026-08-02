@@ -57,13 +57,23 @@ async function callOpenAICompatible(
   systemInstruction: string,
   chatHistory: ChatMessage[],
   latestUserInput: string | undefined,
-  config: { baseUrl: string; apiKey: string; model: string; extraHeaders?: Record<string, string> },
+  config: {
+    baseUrl: string
+    apiKey: string
+    model: string
+    extraHeaders?: Record<string, string>
+    useMaxCompletionTokens?: boolean
+  },
 ): Promise<string> {
   const messages = [
     { role: "system", content: systemInstruction },
     ...chatHistory.map((m) => ({ role: m.role === "ai" ? "assistant" : "user", content: m.text })),
     ...(latestUserInput !== undefined ? [{ role: "user" as const, content: latestUserInput }] : []),
   ]
+
+  const tokenParam = config.useMaxCompletionTokens
+    ? { max_completion_tokens: 1024 }
+    : { max_tokens: 1024 }
 
   const response = await fetch(config.baseUrl, {
     method: "POST",
@@ -72,7 +82,7 @@ async function callOpenAICompatible(
       Authorization: `Bearer ${config.apiKey}`,
       ...config.extraHeaders,
     },
-    body: JSON.stringify({ model: config.model, messages, temperature: 0.7, max_tokens: 1024 }),
+    body: JSON.stringify({ model: config.model, messages, temperature: 0.7, ...tokenParam }),
     cache: "no-store",
   })
 
@@ -232,6 +242,7 @@ export async function getAiReply(
         baseUrl: "https://thesisopenaisocratic-resource.services.ai.azure.com/openai/v1/chat/completions",
         apiKey: process.env.AZURE_OPENAI_API_KEY || "",
         model: "gpt-5-mini",
+        useMaxCompletionTokens: true,
       })
     } else {
       throw new Error(`Unsupported AI provider: ${provider}`)
