@@ -14,7 +14,7 @@ import { getPostById, getPostsByWeek, type Post } from "@/lib/study-data"
 
 const COOKIE = "mlt_student"
 
-const POST_BOUND_INSTRUCTION = "你提出的問題必須引導學生從『這則貼文本身』尋找線索（例如用字、來源標示、數據呈現方式），不要問學生去外部查證研究或資料，只討論貼文內容本身。"
+const POST_BOUND_INSTRUCTION = "重要規則：你只能引導學生觀察『這張貼文截圖裡實際看得到的內容』，例如帳號名稱、貼文文字、圖片內容、按讚數、留言（如果貼文截圖裡有顯示）。絕對禁止要求學生去查看『過去貼文』『歷史留言』『其他評價』『網路搜尋』等貼文截圖以外不存在的資訊，因為學生只能看到這一張貼文截圖，沒有其他資料來源。如果你想引導學生思考來源可信度，只能基於『這張截圖上寫了什麼、沒寫什麼』來提問。"
 const FINAL_REPLY_INSTRUCTION = "你必須直接輸出給學生看的最終回覆，絕對不要輸出思考過程、自我對話、分析步驟或任何 <think> 標籤內容。"
 const STAGE_INSTRUCTIONS = [
   '你現在協助學生進行「觀察」階段。請根據貼文內容和對話歷史，引導學生提出觀察性的問題，不要直接給答案。',
@@ -95,7 +95,16 @@ async function callOpenAICompatible(
 
   const result = await response.json()
   const message = result?.choices?.[0]?.message
-  return message?.content || message?.reasoning_content || ""
+  const candidateText =
+    message?.content ||
+    message?.reasoning_content ||
+    result?.choices?.[0]?.text ||
+    result?.output?.[0]?.content?.[0]?.text ||
+    ""
+
+  console.log("Full API response:", JSON.stringify(result, null, 2))
+
+  return candidateText
 }
 
 function isMeaninglessResponse(text: string): boolean {
