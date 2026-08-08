@@ -51,7 +51,7 @@ async function callOpenAI(
       model: config.model,
       messages,
       temperature: 0.7,
-      max_tokens: 1024,
+      max_completion_tokens: 1024,
     }),
     cache: "no-store",
   })
