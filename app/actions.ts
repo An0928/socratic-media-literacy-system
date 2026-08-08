@@ -25,35 +25,7 @@ const STAGE_INSTRUCTIONS = [
 
 type ChatMessage = { role: "ai" | "user"; text: string }
 
-async function callGemini(systemInstruction: string, chatHistory: ChatMessage[], latestUserInput?: string): Promise<string> {
-  const apiKey = process.env.GEMINI_API_KEY
-  if (!apiKey) throw new Error("Missing GEMINI_API_KEY")
-
-  const historyText = chatHistory.map((m) => `${m.role === "ai" ? "AI" : "學生"}：${m.text}`).join("\n")
-  const latestText = latestUserInput !== undefined ? `\n學生：${latestUserInput}` : ""
-  const prompt = `${systemInstruction}\n\n目前對話紀錄：\n${historyText}${latestText}\n\n請直接以AI身份回覆下一句`
-
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${encodeURIComponent(apiKey)}`
-  const response = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: { temperature: 0.7, maxOutputTokens: 1024 },
-    }),
-    cache: "no-store",
-  })
-
-  if (!response.ok) {
-    console.error("Gemini API error:", response.status, await response.text())
-    return "目前無法取得 AI 回覆，請稍後再試。"
-  }
-
-  const result = await response.json()
-  return result?.candidates?.[0]?.content?.parts?.[0]?.text ?? ""
-}
-
-async function callOpenAICompatible(
+async function callOpenAI(
   systemInstruction: string,
   chatHistory: ChatMessage[],
   latestUserInput: string | undefined,
@@ -61,9 +33,6 @@ async function callOpenAICompatible(
     baseUrl: string
     apiKey: string
     model: string
-    extraHeaders?: Record<string, string>
-    useMaxCompletionTokens?: boolean
-    useDefaultTemperature?: boolean
   },
 ): Promise<string> {
   const messages = [
@@ -72,19 +41,18 @@ async function callOpenAICompatible(
     ...(latestUserInput !== undefined ? [{ role: "user" as const, content: latestUserInput }] : []),
   ]
 
-  const temperatureParam = config.useDefaultTemperature ? {} : { temperature: 0.7 }
-  const tokenParam = config.useMaxCompletionTokens
-    ? { max_completion_tokens: 1024 }
-    : { max_tokens: 1024 }
-
   const response = await fetch(config.baseUrl, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${config.apiKey}`,
-      ...config.extraHeaders,
     },
-    body: JSON.stringify({ model: config.model, messages, ...temperatureParam, ...tokenParam }),
+    body: JSON.stringify({
+      model: config.model,
+      messages,
+      temperature: 0.7,
+      max_tokens: 1024,
+    }),
     cache: "no-store",
   })
 
@@ -95,12 +63,7 @@ async function callOpenAICompatible(
 
   const result = await response.json()
   const message = result?.choices?.[0]?.message
-  const candidateText =
-    message?.content ||
-    message?.reasoning_content ||
-    result?.choices?.[0]?.text ||
-    result?.output?.[0]?.content?.[0]?.text ||
-    ""
+  const candidateText = message?.content || result?.choices?.[0]?.text || ""
 
   console.log("Full API response:", JSON.stringify(result, null, 2))
 
@@ -131,12 +94,13 @@ function buildSystemInstruction(
   week: number,
   stagePrompt: string,
   chatHistory: ChatMessage[],
+  isMeaningless: boolean,
 ) {
   const captionContext = `貼文內容：${postCaption}`
-  const stageInstructionBase =
-    stageIndex === 3
-      ? "你現在協助學生進行「判斷」階段。請幫助學生整理前面各階段的觀察與想法，確認他已經充分思考，這一階段不再提出新的問題，而是引導學生整理內容並準備做出判斷。"
-      : STAGE_INSTRUCTIONS[stageIndex] ?? STAGE_INSTRUCTIONS[0]
+  const stageInstructionBase = STAGE_INSTRUCTIONS[stageIndex] ?? STAGE_INSTRUCTIONS[0]
+  const meaninglessInstruction = isMeaningless
+    ? "學生剛才的回答很敷衍（例如『不知道』『還好』），請不要視為完成一輪。\n換一個更具體的角度重新提問，並且這一輪絕對不要加 [NEXT_STAGE]。"
+    : ""
   const stageInstruction = [
     stageInstructionBase,
     stageIndex === 0
@@ -174,6 +138,7 @@ function buildSystemInstruction(
       "請用高中生能理解的語言回覆，避免學術用語。每次只問一個問題，句子不超過兩行。",
       "如果學生已經指出至少一個具體的質疑或問題，就可以在回覆末尾加 [NEXT_STAGE]。",
       "同一個方向的問題不要重複問超過一次，如果學生已表示不知道，換一個角度繼續引導。",
+      meaninglessInstruction,
       "當學生給出有實質內容的回答時，用一句話簡短回應他說的重點（例如「你注意到了X」或「這個觀察很關鍵」），然後再提出下一個問題，讓對話有連貫感。不要用誇張的讚美如「你說得太棒了」。",
       "當你判斷學生完成此階段需要加 [NEXT_STAGE] 時，在 [NEXT_STAGE] 標記之前，用一句話肯定學生的思考，並同時帶出下一個階段的第一個引導問題。例如：「你已經注意到這個重點了！[NEXT_STAGE] 接下來我們想想，這個說法背後有什麼假設？」不要只輸出 [NEXT_STAGE] 而沒有後續問題。",
       "如果學生已經充分完成此階段，請在回覆末尾附加標記 [NEXT_STAGE]；否則就不要附加。每次回答請只用問句，並且只能問與這則貼文相關的問題。",
@@ -190,6 +155,7 @@ function buildSystemInstruction(
     stageInstruction,
     "根據學生的回答進行追問，提問不需遵循任何特定教學順序或階段。",
     "若學生回答「不知道」「沒有」「不清楚」等無實質內容的回答，不要視為完成一輪，請換一個角度重新引導，再問一次相關問題。",
+    meaninglessInstruction,
     "當你判斷學生已經對這則貼文進行充分思考，在回覆末尾加上 [NEXT_STAGE]。",
     "請直接回覆，不需要顯示思考過程。",
     "請務必使用繁體中文回覆。",
@@ -221,6 +187,7 @@ export async function getAiReply(
     }
     return "你已經在這個階段思考了一段時間，做得很好！現在請問：這則貼文中哪一個細節最值得你下一步再追問？[NEXT_STAGE]"
   }
+  const isMeaningless = latestUserInput !== undefined && isMeaninglessResponse(latestUserInput)
   const systemInstruction = buildSystemInstruction(
     stageIndex,
     isStructured,
@@ -228,37 +195,16 @@ export async function getAiReply(
     week,
     stagePrompt,
     chatHistory,
+    isMeaningless,
   )
-  const provider = process.env.AI_PROVIDER || "gemini"
 
   let candidateText = ""
   try {
-    if (provider === "gemini") {
-      candidateText = await callGemini(systemInstruction, chatHistory, latestUserInput)
-    } else if (provider === "openrouter") {
-      candidateText = await callOpenAICompatible(systemInstruction, chatHistory, latestUserInput, {
-        baseUrl: "https://openrouter.ai/api/v1/chat/completions",
-        apiKey: process.env.OPENROUTER_API_KEY || "",
-        model: "openrouter/free",
-        extraHeaders: { "HTTP-Referer": process.env.NEXT_PUBLIC_SITE_URL || "" },
-      })
-    } else if (provider === "openai") {
-      candidateText = await callOpenAICompatible(systemInstruction, chatHistory, latestUserInput, {
-        baseUrl: "https://api.openai.com/v1/chat/completions",
-        apiKey: process.env.OPENAI_API_KEY || "",
-        model: "gpt-4o-mini",
-      })
-    } else if (provider === "azure") {
-      candidateText = await callOpenAICompatible(systemInstruction, chatHistory, latestUserInput, {
-        baseUrl: "https://thesisopenaisocratic-resource.services.ai.azure.com/openai/v1/chat/completions",
-        apiKey: process.env.AZURE_OPENAI_API_KEY || "",
-        model: "gpt-5-mini",
-        useMaxCompletionTokens: true,
-        useDefaultTemperature: true,
-      })
-    } else {
-      throw new Error(`Unsupported AI provider: ${provider}`)
-    }
+    candidateText = await callOpenAI(systemInstruction, chatHistory, latestUserInput, {
+      baseUrl: "https://api.openai.com/v1/chat/completions",
+      apiKey: process.env.OPENAI_API_KEY || "",
+      model: "gpt-5.4-mini",
+    })
   } catch (err) {
     console.error("AI provider error:", err)
     return "目前無法取得 AI 回覆，請稍後再試。"
