@@ -140,7 +140,7 @@ function buildSystemInstruction(
       "同一個方向的問題不要重複問超過一次，如果學生已表示不知道，換一個角度繼續引導。",
       meaninglessInstruction,
       "當學生給出有實質內容的回答時，用一句話簡短回應他說的重點（例如「你注意到了X」或「這個觀察很關鍵」），然後再提出下一個問題，讓對話有連貫感。不要用誇張的讚美如「你說得太棒了」。",
-      "當你判斷學生完成此階段需要加 [NEXT_STAGE] 時，在 [NEXT_STAGE] 標記之前，用一句話肯定學生的思考，並同時帶出下一個階段的第一個引導問題。例如：「你已經注意到這個重點了！[NEXT_STAGE] 接下來我們想想，這個說法背後有什麼假設？」不要只輸出 [NEXT_STAGE] 而沒有後續問題。",
+      "當你判斷學生完成此階段需要加 [NEXT_STAGE] 時，在 [NEXT_STAGE] 標記之前，用一句話肯定學生的思考即可，不需要提出新的問題。",
       "如果學生已經充分完成此階段，請在回覆末尾附加標記 [NEXT_STAGE]；否則就不要附加。每次回答請只用問句，並且只能問與這則貼文相關的問題。",
       "你只能用問句進行引導，絕對不要直接給出答案或結論。",
     ]
@@ -183,9 +183,9 @@ export async function getAiReply(
     }
   } else if (turnCount >= 3) {
     if (stageIndex === 3) {
-      return "你已經從多個角度思考過這則貼文，做得很好！現在請問：哪一個你最支持的判斷，最能被這則貼文中的證據支持？[NEXT_STAGE]"
+      return "你已經從多個角度思考過這則貼文，準備好了！[NEXT_STAGE]"
     }
-    return "你已經在這個階段思考了一段時間，做得很好！現在請問：這則貼文中哪一個細節最值得你下一步再追問？[NEXT_STAGE]"
+    return "你已經在這個階段思考了一段時間，做得很好！[NEXT_STAGE]"
   }
   const isMeaningless = latestUserInput !== undefined && isMeaninglessResponse(latestUserInput)
   const systemInstruction = buildSystemInstruction(

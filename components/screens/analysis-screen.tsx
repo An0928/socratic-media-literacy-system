@@ -53,7 +53,6 @@ export function AnalysisScreen({ post, existing, onComplete, onExit, isStructure
 
   const scrollRef = useRef<HTMLDivElement>(null)
   const initializedStageRef = useRef<string | null>(null)
-  const skipInitRef = useRef(false)
   const postRef = useRef(post)
 
   useEffect(() => {
@@ -72,7 +71,6 @@ export function AnalysisScreen({ post, existing, onComplete, onExit, isStructure
     setChatDone(false)
     setShowJudgment(false)
     initializedStageRef.current = null
-    skipInitRef.current = false
   }, [post.id])
 
   useEffect(() => {
@@ -82,11 +80,6 @@ export function AnalysisScreen({ post, existing, onComplete, onExit, isStructure
 
   useEffect(() => {
     if (chatDone) return
-
-    if (skipInitRef.current) {
-      skipInitRef.current = false
-      return
-    }
 
     const currentPost = postRef.current
     const initKey = `${currentPost.id}:${stageIndex}`
@@ -179,11 +172,10 @@ export function AnalysisScreen({ post, existing, onComplete, onExit, isStructure
       if (!isStructured && shouldAdvance) {
         setChatDone(true)
       } else if (shouldAdvance && stageIndex < post.script.length - 1) {
-        skipInitRef.current = true
         setStageIndex((prev) => Math.min(prev + 1, post.script.length - 1))
       }
 
-      if (isStructured && stageIndex === post.script.length - 1) {
+      if (isStructured && stageIndex === post.script.length - 1 && shouldAdvance) {
         setChatDone(true)
       }
     } finally {
