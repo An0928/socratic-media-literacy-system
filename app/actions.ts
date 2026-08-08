@@ -10,6 +10,7 @@ import {
   type Judgment,
   type Submission,
 } from "@/lib/db"
+import { isMeaninglessResponse } from "@/lib/chat-helpers"
 import { getPostById, getPostsByWeek, type Post } from "@/lib/study-data"
 
 const COOKIE = "mlt_student"
@@ -68,23 +69,6 @@ async function callOpenAI(
   console.log("Full API response:", JSON.stringify(result, null, 2))
 
   return candidateText
-}
-
-function isMeaninglessResponse(text: string): boolean {
-  const meaninglessPatterns = [
-    "不知道",
-    "沒有",
-    "不清楚",
-    "沒差",
-    "隨便",
-    "不確定",
-    "沒感覺",
-    "沒想法",
-    "還好",
-  ]
-  const trimmed = text.trim()
-  if (trimmed.length <= 2) return true
-  return meaninglessPatterns.some((pattern) => trimmed === pattern || trimmed.includes(pattern))
 }
 
 function buildSystemInstruction(

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useTransition } from "react"
 import { ArrowLeft, Send, Check, Sparkles } from "lucide-react"
 import { getAiReply, submitJudgment } from "@/app/actions"
+import { isMeaninglessResponse } from "@/lib/chat-helpers"
 import type { Submission, Judgment } from "@/lib/db"
 import { STAGE_LABELS } from "@/lib/study-content"
 import type { Post } from "@/lib/study-data"
@@ -33,23 +34,6 @@ export function AnalysisScreen({ post, existing, onComplete, onExit, isStructure
   const [pending, startTransition] = useTransition()
   const [isLoading, setIsLoading] = useState(false)
   const isStructured = isStructuredProp
-
-  function isMeaninglessResponse(text: string): boolean {
-    const meaninglessPatterns = [
-      "不知道",
-      "沒有",
-      "不清楚",
-      "沒差",
-      "隨便",
-      "不確定",
-      "沒感覺",
-      "沒想法",
-      "還好",
-    ]
-    const trimmed = text.trim()
-    if (trimmed.length <= 2) return true
-    return meaninglessPatterns.some((pattern) => trimmed === pattern || trimmed.includes(pattern))
-  }
 
   const scrollRef = useRef<HTMLDivElement>(null)
   const initializedStageRef = useRef<string | null>(null)
