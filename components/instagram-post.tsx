@@ -45,7 +45,7 @@ export function InstagramPost({ post }: { post: Post }) {
         <p className="text-sm font-bold text-card-foreground">
           {post.likes.toLocaleString("zh-TW")} 個讚
         </p>
-        <p className="text-sm leading-relaxed text-card-foreground">
+        <p className="text-base leading-relaxed text-card-foreground">
           <span className="font-bold">{post.username}</span>{" "}
           <span className="text-pretty">{post.caption}</span>
         </p>
