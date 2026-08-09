@@ -101,7 +101,14 @@ export function AnalysisScreen({ post, existing, onComplete, onExit, isStructure
         const cleanedReply = aiReply.replace(/\[NEXT_STAGE\]/gi, "").trim()
 
         if (!ignore) {
-          setMessages((prev) => [...prev, { role: "ai", text: cleanedReply }])
+          setMessages((prev) => {
+            const last = prev[prev.length - 1]
+            if (last && last.role === "ai") {
+              const merged = { role: "ai" as const, text: `${last.text}\n\n${cleanedReply}` }
+              return [...prev.slice(0, -1), merged]
+            }
+            return [...prev, { role: "ai", text: cleanedReply }]
+          })
           setStageMessages((prev) => [...prev, { role: "ai", text: cleanedReply }])
         }
       } catch {
@@ -353,7 +360,7 @@ function ChatBubble({ role, text }: { role: "ai" | "user"; text: string }) {
           <Sparkles className="size-4" aria-hidden="true" />
         </span>
         <div className="max-w-[85%] rounded-2xl rounded-tl-sm bg-muted px-4 py-2.5">
-          <p className="text-sm leading-relaxed text-card-foreground">{text}</p>
+          <p className="whitespace-pre-line text-sm leading-relaxed text-card-foreground">{text}</p>
         </div>
       </div>
     )
