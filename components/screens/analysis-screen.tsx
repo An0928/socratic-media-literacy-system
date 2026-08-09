@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input"
 const INTRO_MESSAGE = `接下來我會針對這則貼文問你幾個問題，你可以根據貼文的文字內容和圖片畫面來回答。
 我們會一起討論、思考這則貼文可能的問題，最後由你自己判斷這則貼文是真的、假的，還是不確定。重要的是你的思考過程，不是急著找到「正確答案」。
 
-準備好了嗎？請輸入「準備好了」，開始這次的思考挑戰。`
+準備好了嗎？`
 
 type ChatMessage = { role: "ai" | "user"; text: string }
 
@@ -92,6 +92,7 @@ export function AnalysisScreen({ post, existing, onComplete, onExit, isStructure
           stageIndex,
           isStructured,
           currentPost.caption,
+          currentPost.image_description,
           currentPost.week,
           stagePrompt,
           undefined,
@@ -156,6 +157,7 @@ export function AnalysisScreen({ post, existing, onComplete, onExit, isStructure
         stageIndex,
         isStructured,
         post.caption,
+        post.image_description,
         post.week,
         stagePrompt,
         text,

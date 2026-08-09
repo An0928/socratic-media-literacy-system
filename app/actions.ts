@@ -75,12 +75,13 @@ function buildSystemInstruction(
   stageIndex: number,
   isStructured: boolean,
   postCaption: string,
+  image_description: string,
   week: number,
   stagePrompt: string,
   chatHistory: ChatMessage[],
   isMeaningless: boolean,
 ) {
-  const captionContext = `貼文內容：${postCaption}`
+  const captionContext = `貼文文字：${postCaption}\n貼文圖片內容：${image_description}`
   const stageInstructionBase = STAGE_INSTRUCTIONS[stageIndex] ?? STAGE_INSTRUCTIONS[0]
   const meaninglessInstruction = isMeaningless
     ? "學生剛才的回答很敷衍（例如『不知道』『還好』），請不要視為完成一輪。\n換一個更具體的角度重新提問，並且這一輪絕對不要加 [NEXT_STAGE]。"
@@ -94,7 +95,7 @@ function buildSystemInstruction(
   ]
     .filter(Boolean)
     .join("\n")
-  const postSpecificGuidance = stagePrompt
+  const postSpecificGuidance = stagePrompt && stageIndex !== 3
     ? `針對這則貼文，請特別引導學生注意：${stagePrompt}`
     : ""
   const isFirstRound = chatHistory.length === 0
@@ -156,6 +157,7 @@ export async function getAiReply(
   stageIndex: number,
   isStructured: boolean,
   postCaption: string,
+  image_description: string,
   week: number,
   stagePrompt: string,
   latestUserInput?: string,
@@ -176,6 +178,7 @@ export async function getAiReply(
     stageIndex,
     isStructured,
     postCaption,
+    image_description,
     week,
     stagePrompt,
     chatHistory,

@@ -19,6 +19,7 @@ export type Post = {
   avatarColor: string
   image: string
   caption: string
+  image_description: string
   likes: number
   // Per-post scripted conversation. Each entry is one AI turn.
   script: Stage[]
@@ -93,6 +94,7 @@ function mapRowToPost(row: RowDataPacket): Post {
     avatarColor: row.avatar_color as string,
     image: row.image_url as string,
     caption: row.caption as string,
+    image_description: (row.image_description as string) ?? "",
     likes: Number(row.likes),
     script: buildScript({
       observe: (row.observe_prompt as string) ?? "",
@@ -106,7 +108,7 @@ export async function getPostsByWeek(week: number): Promise<Post[]> {
   await ensurePostsSchema()
   const db = getPool()
   const [rows] = await db.query<RowDataPacket[]>(
-    `SELECT id, week, slot, username, handle, avatar_color, image_url, caption, likes, observe_prompt, challenge_prompt, alternative_prompt
+    `SELECT id, week, slot, username, handle, avatar_color, image_url, caption, likes, image_description, observe_prompt, challenge_prompt, alternative_prompt
      FROM posts
      WHERE week = ?
      ORDER BY slot ASC`,
@@ -119,7 +121,7 @@ export async function getPostById(id: string): Promise<Post | undefined> {
   await ensurePostsSchema()
   const db = getPool()
   const [rows] = await db.query<RowDataPacket[]>(
-    `SELECT id, week, slot, username, handle, avatar_color, image_url, caption, likes, observe_prompt, challenge_prompt, alternative_prompt
+    `SELECT id, week, slot, username, handle, avatar_color, image_url, caption, likes, image_description, observe_prompt, challenge_prompt, alternative_prompt
      FROM posts
      WHERE id = ?
      LIMIT 1`,
