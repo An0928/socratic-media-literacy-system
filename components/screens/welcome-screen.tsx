@@ -8,7 +8,7 @@ const STEPS = [
   {
     icon: ImageIcon,
     title: "閱讀 Instagram 貼文",
-    desc: "仔細看看貼文的內容、圖片與留言。",
+    desc: "仔細看看貼文的內容與圖片。",
     color: "#ec4899",
   },
   {

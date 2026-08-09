@@ -12,6 +12,11 @@ import { JudgmentScreen } from "@/components/screens/judgment-screen"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 
+const INTRO_MESSAGE = `接下來我會針對這則貼文問你幾個問題，你可以根據貼文的文字內容和圖片畫面來回答。
+我們會一起討論、思考這則貼文可能的問題，最後由你自己判斷這則貼文是真的、假的，還是不確定。重要的是你的思考過程，不是急著找到「正確答案」。
+
+準備好了嗎？請輸入「準備好了」，開始這次的思考挑戰。`
+
 type ChatMessage = { role: "ai" | "user"; text: string }
 
 type Props = {
@@ -33,11 +38,13 @@ export function AnalysisScreen({ post, existing, onComplete, onExit, isStructure
   const [showJudgment, setShowJudgment] = useState(false)
   const [pending, startTransition] = useTransition()
   const [isLoading, setIsLoading] = useState(false)
+  const [introConfirmed, setIntroConfirmed] = useState(false)
   const isStructured = isStructuredProp
 
   const scrollRef = useRef<HTMLDivElement>(null)
   const initializedStageRef = useRef<string | null>(null)
   const postRef = useRef(post)
+  const introShownRef = useRef<string | null>(null)
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" })
@@ -49,12 +56,14 @@ export function AnalysisScreen({ post, existing, onComplete, onExit, isStructure
 
   useEffect(() => {
     setStageIndex(0)
-    setMessages([])
+    setMessages([{ role: "ai", text: INTRO_MESSAGE }])
     setStageMessages([])
     setInput("")
     setChatDone(false)
     setShowJudgment(false)
+    setIntroConfirmed(false)
     initializedStageRef.current = null
+    introShownRef.current = post.id
   }, [post.id])
 
   useEffect(() => {
@@ -63,10 +72,11 @@ export function AnalysisScreen({ post, existing, onComplete, onExit, isStructure
   }, [stageIndex])
 
   useEffect(() => {
-    if (chatDone) return
-
     const currentPost = postRef.current
+    if (chatDone) return
+    if (!introConfirmed) return
     const initKey = `${currentPost.id}:${stageIndex}`
+
 
     if (initializedStageRef.current === initKey) return
     initializedStageRef.current = initKey
@@ -109,7 +119,7 @@ export function AnalysisScreen({ post, existing, onComplete, onExit, isStructure
     return () => {
       ignore = true
     }
-  }, [chatDone, isStructured, post.id, stageIndex])
+  }, [chatDone, introConfirmed, isStructured, post.id, stageIndex])
 
   // The active stage for the progress bar: number of completed stages.
   const activeStage = chatDone ? STAGE_LABELS.length : stageIndex
@@ -119,6 +129,13 @@ export function AnalysisScreen({ post, existing, onComplete, onExit, isStructure
     e.preventDefault()
     const text = input.trim()
     if (!text || isLoading) return
+
+    if (!introConfirmed) {
+      setInput("")
+      setMessages((prev) => [...prev, { role: "user", text }])
+      setIntroConfirmed(true)
+      return
+    }
 
     const userMsg: ChatMessage = { role: "user", text }
     const nextStageMessages = [...stageMessages, userMsg]
