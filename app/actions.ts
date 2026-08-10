@@ -84,6 +84,7 @@ function buildSystemInstruction(
   previousStageLastAnswer?: string,
 ) {
   const captionContext = `貼文文字：${postCaption}\n貼文圖片內容：${image_description}`
+  const imageBoundaryInstruction = "貼文圖片內容的描述，只有在學生自己主動提到圖片裡的東西時，才能用來核對學生說的對不對、或幫學生確認細節；如果學生從頭到尾都只針對文字內容討論，請不要主動把話題引導去圖片，繼續針對文字內容追問就好。"
   const stageInstructionBase = STAGE_INSTRUCTIONS[stageIndex] ?? STAGE_INSTRUCTIONS[0]
   const meaninglessInstruction = isMeaningless
     ? "學生剛才的回答很敷衍（例如『不知道』『還好』），請不要視為完成一輪。\n換一個更具體的角度重新提問，並且這一輪絕對不要加 [NEXT_STAGE]。"
@@ -100,6 +101,7 @@ function buildSystemInstruction(
       ? "如果學生一開始就直接做出真假判斷，不要否定他，而是引導他說明「為什麼」這樣覺得，藉此進入觀察階段。"
       : "",
     POST_BOUND_INSTRUCTION,
+    imageBoundaryInstruction,
   ]
     .filter(Boolean)
     .join("\n")
@@ -153,6 +155,7 @@ function buildSystemInstruction(
     FINAL_REPLY_INSTRUCTION,
     "你是一個媒體素養引導助手，針對這則貼文對學生提出開放式問題。",
     stageInstruction,
+    imageBoundaryInstruction,
     "根據學生的回答進行追問，提問不需遵循任何特定教學順序或階段。",
     "若學生回答「不知道」「沒有」「不清楚」等無實質內容的回答，不要視為完成一輪，請換一個角度重新引導，再問一次相關問題。",
     meaninglessInstruction,
