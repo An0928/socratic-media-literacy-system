@@ -33,6 +33,7 @@ export function AnalysisScreen({ post, existing, onComplete, onExit, isStructure
   const [stageIndex, setStageIndex] = useState(0)
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [stageMessages, setStageMessages] = useState<ChatMessage[]>([])
+  const [previousStageLastAnswer, setPreviousStageLastAnswer] = useState<string | undefined>(undefined)
   const [input, setInput] = useState("")
   const [chatDone, setChatDone] = useState(false)
   const [showJudgment, setShowJudgment] = useState(false)
@@ -62,6 +63,7 @@ export function AnalysisScreen({ post, existing, onComplete, onExit, isStructure
     setChatDone(false)
     setShowJudgment(false)
     setIntroConfirmed(false)
+    setPreviousStageLastAnswer(undefined)
     initializedStageRef.current = null
     introShownRef.current = post.id
   }, [post.id])
@@ -97,6 +99,7 @@ export function AnalysisScreen({ post, existing, onComplete, onExit, isStructure
           stagePrompt,
           undefined,
           0,
+          previousStageLastAnswer,
         )
         const cleanedReply = aiReply.replace(/\[NEXT_STAGE\]/gi, "").trim()
 
@@ -110,6 +113,7 @@ export function AnalysisScreen({ post, existing, onComplete, onExit, isStructure
             return [...prev, { role: "ai", text: cleanedReply }]
           })
           setStageMessages((prev) => [...prev, { role: "ai", text: cleanedReply }])
+          setPreviousStageLastAnswer(undefined)
         }
       } catch {
         if (!ignore) {
@@ -178,6 +182,10 @@ export function AnalysisScreen({ post, existing, onComplete, onExit, isStructure
         return [...withoutLoading, { role: "ai", text: cleanedReply }]
       })
       setStageMessages((prev) => [...prev, { role: "ai", text: cleanedReply }])
+
+      if (shouldAdvance && stageIndex < post.script.length - 1) {
+        setPreviousStageLastAnswer(text)
+      }
 
       if (!isStructured && shouldAdvance) {
         setChatDone(true)
