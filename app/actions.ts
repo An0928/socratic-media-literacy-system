@@ -80,7 +80,6 @@ function buildSystemInstruction(
   stagePrompt: string,
   chatHistory: ChatMessage[],
   isMeaningless: boolean,
-  isFallbackClosing: boolean,
   previousStageLastAnswer?: string,
 ) {
   const captionContext = `貼文文字：${postCaption}\n貼文圖片內容：${image_description}`
@@ -89,11 +88,8 @@ function buildSystemInstruction(
   const meaninglessInstruction = isMeaningless
     ? "學生剛才的回答很敷衍（例如『不知道』『還好』），請不要視為完成一輪。\n換一個更具體的角度重新提問，並且這一輪絕對不要加 [NEXT_STAGE]。"
     : ""
-  const fallbackClosingInstruction = isFallbackClosing
-    ? "學生已經在這個階段討論了一段時間。請針對學生剛剛最後一句話，用一句話簡短回應其中的重點，語氣自然、不要用固定公式化的說法。接著直接加上 [NEXT_STAGE]。這一輪絕對不要再問任何新問題，也不要超過兩句話。"
-    : ""
   const bridgeInstruction = previousStageLastAnswer
-    ? `這是新階段的第一個問題。學生在上一階段最後回答了：「${previousStageLastAnswer}」。如果適合，你的開場問題可以稍微呼應這句話的內容，讓對話感覺有連貫性；如果這句話跟新階段的主題關聯不大，也可以不特別呼應，直接問新階段該問的問題。`
+    ? `這是新階段的第一個問題。學生在上一階段最後回答了：「${previousStageLastAnswer}」。如果適合，請把這句話自然地融入你的開場問題裡，用一句話簡短承接後直接接上新階段的提問，兩者合併成一個完整的問題，不要分成兩句話問兩件事；如果這句話跟新階段的主題關聯不大，就不用呼應，直接問新階段該問的問題就好。整段回覆只能有一個問句。`
     : ""
   const stageInstruction = [
     stageInstructionBase,
@@ -110,19 +106,15 @@ function buildSystemInstruction(
     : ""
   const isFirstRound = chatHistory.length === 0
   const scaffoldLevel = week <= 2 ? "high" : "low"
-  const scaffoldInstruction = isFallbackClosing
-    ? ""
-    : scaffoldLevel === "high"
-      ? "請提供具體的引導方向，例如提示學生注意來源、標題用字或數字等細節。"
-      : "請用開放式問題引導，不要提供具體例子或方向，讓學生自己發現問題。"
+  const scaffoldInstruction = scaffoldLevel === "high"
+    ? "請提供具體的引導方向，例如提示學生注意來源、標題用字或數字等細節。"
+    : "請用開放式問題引導，不要提供具體例子或方向，讓學生自己發現問題。"
 
-  const roundInstruction = isFallbackClosing
-    ? ""
-    : stageIndex === 3
-      ? "這是判斷階段，只能用整理型問句回顧學生前面已經講過的內容，禁止提出任何前面階段沒討論過的新細節或新角度。"
-      : isFirstRound
-        ? "這是這個階段的第一輪，請只問一個開放式問題，讓學生自由回應。"
-        : "請根據學生的回答決定下一步：若學生回答像『不知道』『沒有』『不清楚』等，先給一個具體的觀察方向提示，再只問一個問題；若學生有實質回答，請繼續深入追問；每次回答都只問一個問題，不要一次問超過一個。"
+  const roundInstruction = stageIndex === 3
+    ? "這是判斷階段，只能用整理型問句回顧學生前面已經講過的內容，禁止提出任何前面階段沒討論過的新細節或新角度。"
+    : isFirstRound
+      ? "這是這個階段的第一輪，請只問一個開放式問題，讓學生自由回應。"
+      : "請根據學生的回答決定下一步：若學生回答像『不知道』『沒有』『不清楚』等，先給一個具體的觀察方向提示，再只問一個問題；若學生有實質回答，請繼續深入追問；每次回答都只問一個問題，不要一次問超過一個。"
 
   if (isStructured) {
     return [
@@ -138,7 +130,6 @@ function buildSystemInstruction(
       "如果學生已經指出至少一個具體的質疑或問題，就可以在回覆末尾加 [NEXT_STAGE]。",
       "同一個方向的問題不要重複問超過一次，如果學生已表示不知道，換一個角度繼續引導。",
       meaninglessInstruction,
-      fallbackClosingInstruction,
       bridgeInstruction,
       "當學生給出有實質內容的回答時，用一句話簡短回應他說的重點，讓對話有連貫感，然後再提出下一個問題。回應的方式要有變化，不要每次都用同一種句型開頭（例如不要每次都是「你注意到了X」「這個觀察很關鍵」這種固定公式），試著像朋友聊天一樣自然回應，不要用誇張的讚美如「你說得太棒了」。",
       "回應的語氣要像朋友在討論，不要像在考試或審核學生。可以適度用貼近生活的情境提問，例如『如果你朋友傳這篇給你，你會怎麼回她？』，讓問題更有畫面感，不要每一句都停留在抽象的文本分析。",
@@ -159,7 +150,6 @@ function buildSystemInstruction(
     "根據學生的回答進行追問，提問不需遵循任何特定教學順序或階段。",
     "若學生回答「不知道」「沒有」「不清楚」等無實質內容的回答，不要視為完成一輪，請換一個角度重新引導，再問一次相關問題。",
     meaninglessInstruction,
-    fallbackClosingInstruction,
     bridgeInstruction,
     "當你判斷學生已經對這則貼文進行充分思考，在回覆末尾加上 [NEXT_STAGE]。",
     "請直接回覆，不需要顯示思考過程。",
@@ -185,14 +175,14 @@ export async function getAiReply(
   turnCount: number = 0,
   previousStageLastAnswer?: string,
 ): Promise<string> {
-  let isFallbackClosing = false
   if (!isStructured) {
     if (turnCount >= 8) {
-      isFallbackClosing = true
+      return "感謝您這次參與討論，換您做出您的答案。[NEXT_STAGE]"
     }
-  } else if (turnCount >= 3) {
-    isFallbackClosing = true
+  } else if (turnCount >= 2) {
+    return "感謝您這次參與討論，換您做出您的答案。[NEXT_STAGE]"
   }
+
   const isMeaningless = latestUserInput !== undefined && isMeaninglessResponse(latestUserInput)
   const systemInstruction = buildSystemInstruction(
     stageIndex,
@@ -203,7 +193,6 @@ export async function getAiReply(
     stagePrompt,
     chatHistory,
     isMeaningless,
-    isFallbackClosing,
     previousStageLastAnswer,
   )
 
