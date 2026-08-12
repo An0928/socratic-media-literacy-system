@@ -179,9 +179,12 @@ export function AnalysisScreen({ post, existing, onComplete, onExit, isStructure
 
       setMessages((prev) => {
         const withoutLoading = prev.filter((message) => !(message.role === "ai" && message.text === "..."))
+        if (!cleanedReply) return withoutLoading
         return [...withoutLoading, { role: "ai", text: cleanedReply }]
       })
-      setStageMessages((prev) => [...prev, { role: "ai", text: cleanedReply }])
+      if (cleanedReply) {
+        setStageMessages((prev) => [...prev, { role: "ai", text: cleanedReply }])
+      }
 
       if (shouldAdvance && stageIndex < post.script.length - 1) {
         setPreviousStageLastAnswer(text)

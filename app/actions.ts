@@ -179,8 +179,11 @@ export async function getAiReply(
     if (turnCount >= 8) {
       return "感謝您這次參與討論，換您做出您的答案。[NEXT_STAGE]"
     }
-  } else if (turnCount >= 2) {
-    return "感謝您這次參與討論，換您做出您的答案。[NEXT_STAGE]"
+  } else if (turnCount >= 3) {
+    if (stageIndex === 3) {
+      return "感謝您這次參與討論，換您做出您的答案。[NEXT_STAGE]"
+    }
+    return "[NEXT_STAGE]"
   }
 
   const isMeaningless = latestUserInput !== undefined && isMeaninglessResponse(latestUserInput)
