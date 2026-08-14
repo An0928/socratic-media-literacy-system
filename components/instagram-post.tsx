@@ -47,7 +47,9 @@ export function InstagramPost({ post }: { post: Post }) {
         </p>
         <p className="text-base leading-relaxed text-card-foreground">
           <span className="font-bold">{post.username}</span>{" "}
-          <span className="text-pretty">{post.caption}</span>
+          <span className="text-pretty whitespace-pre-line">
+            {post.caption.replace(/\\n/g, "\n")}
+          </span>
         </p>
       </div>
     </article>
