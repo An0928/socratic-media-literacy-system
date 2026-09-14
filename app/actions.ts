@@ -10,7 +10,7 @@ import {
   type Judgment,
   type Submission,
 } from "@/lib/db"
-import { isMeaninglessResponse } from "@/lib/chat-helpers"
+import { isMeaninglessResponse, isConfusedResponse } from "@/lib/chat-helpers"
 import { getPostById, getPostsByWeek, type Post } from "@/lib/study-data"
 
 const COOKIE = "mlt_student"
@@ -84,6 +84,7 @@ function buildSystemInstruction(
   stagePrompt: string,
   chatHistory: ChatMessage[],
   isMeaningless: boolean,
+  isConfused: boolean,
   previousStageLastAnswer?: string,
 ) {
   const captionContext = `貼文文字：${postCaption}\n貼文圖片內容：${image_description}`
@@ -91,6 +92,9 @@ function buildSystemInstruction(
   const stageInstructionBase = STAGE_INSTRUCTIONS[stageIndex] ?? STAGE_INSTRUCTIONS[0]
   const meaninglessInstruction = isMeaningless
     ? "學生剛才的回答很敷衍（例如『不知道』『還好』），請不要視為完成一輪。\n換一個更具體的角度重新提問，並且這一輪絕對不要加 [NEXT_STAGE]。"
+    : ""
+  const confusedInstruction = isConfused
+    ? "學生剛才的回覆顯示他聽不懂你上一個問題（例如說『不懂』『聽不懂』），請不要視為完成一輪，也不要換成新的問題或新的觀察角度。請把你剛剛問過的同一個問題，用更簡單、更口語、更貼近日常對話的方式重新講一次，讓高中生更容易理解，並且這一輪絕對不要加 [NEXT_STAGE]。"
     : ""
   const bridgeInstruction = previousStageLastAnswer
     ? `這是新階段的第一個問題。學生在上一階段最後回答了：「${previousStageLastAnswer}」。如果適合，請把這句話自然地融入你的開場問題裡，用一句話簡短承接後直接接上新階段的提問，兩者合併成一個完整的問題，不要分成兩句話問兩件事；如果這句話跟新階段的主題關聯不大，就不用呼應，直接問新階段該問的問題就好。整段回覆只能有一個問句。`
@@ -136,6 +140,7 @@ function buildSystemInstruction(
       "同一個方向的問題不要重複問超過一次，如果學生已表示不知道，換一個角度繼續引導。",
       "每一輪提問前，請先確認這個問題跟你前面已經問過的問題，是不是本質上在問同一件事（例如都是在問『有沒有寫來源』），如果是，請換成完全不同的觀察角度，不要用不同的說法重複問同一個重點。",
       meaninglessInstruction,
+      confusedInstruction,
       bridgeInstruction,
       "當學生給出有實質內容的回答時，用一句話簡短回應他說的重點，讓對話有連貫感，然後再提出下一個問題。回應的方式要有變化，不要每次都用同一種句型開頭（例如不要每次都是「你注意到了X」「這個觀察很關鍵」這種固定公式），試著像朋友聊天一樣自然回應，不要用誇張的讚美如「你說得太棒了」。",
       "回應的語氣要像朋友在討論，不要像在考試或審核學生。可以適度用貼近生活的情境提問，例如『如果你朋友傳這篇給你，你會怎麼回她？』，讓問題更有畫面感，不要每一句都停留在抽象的文本分析。",
@@ -156,8 +161,7 @@ function buildSystemInstruction(
     scaffoldInstruction,
     "根據學生的回答進行追問，提問不需遵循任何特定教學順序或階段。",
     "若學生回答「不知道」「沒有」「不清楚」等無實質內容的回答，不要視為完成一輪，請換一個角度重新引導，再問一次相關問題。",
-    meaninglessInstruction,
-    bridgeInstruction,
+    meaninglessInstruction, confusedInstruction, bridgeInstruction,
     "無論你認為學生的思考是否已經充分，都絕對不要自己在回覆中加上 [NEXT_STAGE] 標記，這個對話什麼時候結束完全由系統根據輪次數字判斷，不需要你介入或自行決定。",
     "請直接回覆，不需要顯示思考過程。",
     "請務必使用繁體中文回覆。",
@@ -194,6 +198,7 @@ export async function getAiReply(
   }
 
   const isMeaningless = latestUserInput !== undefined && isMeaninglessResponse(latestUserInput)
+  const isConfused = latestUserInput !== undefined && !isMeaningless && isConfusedResponse(latestUserInput)
   const systemInstruction = buildSystemInstruction(
     stageIndex,
     isStructured,
@@ -203,6 +208,7 @@ export async function getAiReply(
     stagePrompt,
     chatHistory,
     isMeaningless,
+    isConfused,
     previousStageLastAnswer,
   )
 
