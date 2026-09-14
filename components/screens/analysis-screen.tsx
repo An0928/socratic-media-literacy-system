@@ -17,7 +17,7 @@ const INTRO_MESSAGE = `接下來我會針對這則貼文問幾個問題，請根
 
 準備好了嗎？`
 
-type ChatMessage = { role: "ai" | "user"; text: string }
+type ChatMessage = { role: "ai" | "user"; text: string; stage?: number }
 
 type Props = {
   post: Post
@@ -107,12 +107,12 @@ export function AnalysisScreen({ post, existing, onComplete, onExit, isStructure
           setMessages((prev) => {
             const last = prev[prev.length - 1]
             if (last && last.role === "ai") {
-              const merged = { role: "ai" as const, text: `${last.text}\n\n${cleanedReply}` }
+              const merged = { role: "ai" as const, text: `${last.text}\n\n${cleanedReply}`, stage: stageIndex }
               return [...prev.slice(0, -1), merged]
             }
-            return [...prev, { role: "ai", text: cleanedReply }]
+            return [...prev, { role: "ai", text: cleanedReply, stage: stageIndex }]
           })
-          setStageMessages((prev) => [...prev, { role: "ai", text: cleanedReply }])
+          setStageMessages((prev) => [...prev, { role: "ai", text: cleanedReply, stage: stageIndex }])
           setPreviousStageLastAnswer(undefined)
         }
       } catch {
@@ -157,7 +157,7 @@ export function AnalysisScreen({ post, existing, onComplete, onExit, isStructure
       : stageMessages.filter((message) => message.role === "ai").length
 
     setInput("")
-    setMessages((prev) => [...prev, userMsg, { role: "ai", text: "..." }])
+    setMessages((prev) => [...prev, userMsg, { role: "ai", text: "...", stage: stageIndex }])
     setStageMessages(nextStageMessages)
     setIsLoading(true)
 
@@ -180,10 +180,10 @@ export function AnalysisScreen({ post, existing, onComplete, onExit, isStructure
       setMessages((prev) => {
         const withoutLoading = prev.filter((message) => !(message.role === "ai" && message.text === "..."))
         if (!cleanedReply) return withoutLoading
-        return [...withoutLoading, { role: "ai", text: cleanedReply }]
+        return [...withoutLoading, { role: "ai", text: cleanedReply, stage: stageIndex }]
       })
       if (cleanedReply) {
-        setStageMessages((prev) => [...prev, { role: "ai", text: cleanedReply }])
+        setStageMessages((prev) => [...prev, { role: "ai", text: cleanedReply, stage: stageIndex }])
       }
 
       if (shouldAdvance && stageIndex < post.script.length - 1) {
@@ -206,7 +206,12 @@ export function AnalysisScreen({ post, existing, onComplete, onExit, isStructure
 
   function buildChatLog(): string {
     return messages
-      .map((m) => `${m.role === "ai" ? "AI" : "學生"}：${m.text}`)
+      .map((m) => {
+        if (m.role === "ai" && isStructured && m.stage !== undefined) {
+          return `AI [${STAGE_LABELS[m.stage]}]：${m.text}`
+        }
+        return `${m.role === "ai" ? "AI" : "學生"}：${m.text}`
+      })
       .join("\n")
   }
 
