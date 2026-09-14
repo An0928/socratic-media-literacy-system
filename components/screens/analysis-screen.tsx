@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useTransition } from "react"
 import { ArrowLeft, Send, Check, Sparkles } from "lucide-react"
 import { getAiReply, submitJudgment } from "@/app/actions"
-import { isMeaninglessResponse } from "@/lib/chat-helpers"
+import { isMeaninglessResponse, isConfusedResponse } from "@/lib/chat-helpers"
 import type { Submission, Judgment } from "@/lib/db"
 import { STAGE_LABELS } from "@/lib/study-content"
 import type { Post } from "@/lib/study-data"
@@ -152,7 +152,9 @@ export function AnalysisScreen({ post, existing, onComplete, onExit, isStructure
     const userMsg: ChatMessage = { role: "user", text }
     const nextStageMessages = [...stageMessages, userMsg]
     const isMeaningless = isMeaninglessResponse(text)
-    const turnCount = isStructured && !isMeaningless
+    const isConfused = !isMeaningless && isConfusedResponse(text)
+    const shouldSkipTurnIncrement = isMeaningless || isConfused
+    const turnCount = isStructured && !shouldSkipTurnIncrement
       ? stageMessages.filter((message) => message.role === "ai").length + 1
       : stageMessages.filter((message) => message.role === "ai").length
 
