@@ -184,7 +184,7 @@ export function AnalysisScreen({ post, existing, onComplete, onExit, isStructure
         if (!cleanedReply) return withoutLoading
         return [...withoutLoading, { role: "ai", text: cleanedReply, stage: stageIndex }]
       })
-      if (cleanedReply) {
+      if (cleanedReply && !shouldSkipTurnIncrement) {
         setStageMessages((prev) => [...prev, { role: "ai", text: cleanedReply, stage: stageIndex }])
       }
 
