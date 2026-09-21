@@ -9,36 +9,47 @@ type Props = {
   onSelect: (judgment: Judgment) => void
   onContinue: () => void
   saving: boolean
+  language?: "zh" | "en"
 }
 
-const OPTIONS: {
-  value: Judgment
-  label: string
-  icon: typeof Check
-  classes: string
-}[] = [
-  {
-    value: "real",
-    label: "我認為這是真實的",
-    icon: Check,
-    classes: "border-success bg-success/10 text-success hover:bg-success/15",
-  },
-  {
-    value: "fake",
-    label: "我認為這是假的或誤導性的",
-    icon: X,
-    classes: "border-destructive bg-destructive/10 text-destructive hover:bg-destructive/15",
-  },
-  {
-    value: "unsure",
-    label: "我無法判斷",
-    icon: HelpCircle,
-    classes: "border-border bg-muted text-muted-foreground hover:bg-muted/70",
-  },
-]
+function getOptions(language: "zh" | "en") {
+  const labels = language === "en"
+    ? {
+      real: "I think this is true",
+      fake: "I think this is false or misleading",
+      unsure: "I can't tell",
+    }
+    : {
+      real: "我認為這是真實的",
+      fake: "我認為這是假的或誤導性的",
+      unsure: "我無法判斷",
+    }
 
-export function JudgmentScreen({ onSelect, onContinue, saving }: Props) {
+  return [
+    {
+      value: "real" as Judgment,
+      label: labels.real,
+      icon: Check,
+      classes: "border-success bg-success/10 text-success hover:bg-success/15",
+    },
+    {
+      value: "fake" as Judgment,
+      label: labels.fake,
+      icon: X,
+      classes: "border-destructive bg-destructive/10 text-destructive hover:bg-destructive/15",
+    },
+    {
+      value: "unsure" as Judgment,
+      label: labels.unsure,
+      icon: HelpCircle,
+      classes: "border-border bg-muted text-muted-foreground hover:bg-muted/70",
+    },
+  ]
+}
+
+export function JudgmentScreen({ onSelect, onContinue, saving, language = "zh" }: Props) {
   const [selected, setSelected] = useState<Judgment | null>(null)
+  const options = getOptions(language)
 
   function choose(value: Judgment) {
     if (selected) return
@@ -53,13 +64,15 @@ export function JudgmentScreen({ onSelect, onContinue, saving }: Props) {
           {!selected ? (
             <>
               <h1 className="text-balance text-center text-2xl font-extrabold text-card-foreground">
-                根據你的思考，你的判斷是？
+                {language === "en" ? "Based on your thinking, what's your judgment?" : "根據你的思考，你的判斷是？"}
               </h1>
               <p className="mt-2 text-center text-sm text-muted-foreground">
-                選擇最符合你想法的選項，沒有標準答案。
+                {language === "en"
+                  ? "Choose the option that best matches your thinking. There's no correct answer."
+                  : "選擇最符合你想法的選項，沒有標準答案。"}
               </p>
               <div className="mt-8 flex flex-col gap-3">
-                {OPTIONS.map((opt) => (
+                {options.map((opt) => (
                   <button
                     key={opt.value}
                     type="button"
@@ -81,10 +94,12 @@ export function JudgmentScreen({ onSelect, onContinue, saving }: Props) {
               </span>
               <h2 className="mt-6 flex items-center gap-2 text-2xl font-extrabold text-card-foreground">
                 <PartyPopper className="size-6 text-primary" aria-hidden="true" />
-                本則完成！
+                {language === "en" ? "Post Complete!" : "本則完成！"}
               </h2>
               <p className="mt-2 text-pretty text-sm leading-relaxed text-muted-foreground">
-                謝謝你認真思考。每一次練習，都讓你更能看穿網路資訊的真假。
+                {language === "en"
+                  ? "Thank you for thinking this through. Each practice helps you get better at spotting misinformation online."
+                  : "謝謝你認真思考。每一次練習，都讓你更能看穿網路資訊的真假。"}
               </p>
               <Button
                 onClick={onContinue}
@@ -92,10 +107,10 @@ export function JudgmentScreen({ onSelect, onContinue, saving }: Props) {
                 className="mt-8 h-12 w-full rounded-xl bg-primary text-base font-bold text-primary-foreground shadow-sm transition-transform hover:bg-primary/90 active:scale-[0.98]"
               >
                 {saving ? (
-                  "儲存中…"
+                  language === "en" ? "Saving…" : "儲存中…"
                 ) : (
                   <span className="flex items-center gap-1.5">
-                    繼續下一則 <ArrowRight className="size-5" aria-hidden="true" />
+                    {language === "en" ? "Continue to Next" : "繼續下一則"} <ArrowRight className="size-5" aria-hidden="true" />
                   </span>
                 )}
               </Button>

@@ -58,8 +58,8 @@ export function LoginScreen({ onLoggedIn }: { onLoggedIn: (state: StudentState) 
                 type="button"
                 onClick={() => setLanguage("zh")}
                 className={`rounded-full px-4 py-1.5 text-sm font-semibold transition-colors ${language === "zh"
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground hover:text-foreground"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground hover:text-foreground"
                   }`}
               >
                 中文
@@ -68,8 +68,8 @@ export function LoginScreen({ onLoggedIn }: { onLoggedIn: (state: StudentState) 
                 type="button"
                 onClick={() => setLanguage("en")}
                 className={`rounded-full px-4 py-1.5 text-sm font-semibold transition-colors ${language === "en"
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground hover:text-foreground"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground hover:text-foreground"
                   }`}
               >
                 English
@@ -99,7 +99,7 @@ export function LoginScreen({ onLoggedIn }: { onLoggedIn: (state: StudentState) 
                 id="groupCode"
                 value={groupCode}
                 onChange={(e) => setGroupCode(e.target.value)}
-                placeholder="0 或 1"
+                placeholder="0 or 1"
                 autoComplete="off"
                 inputMode="text"
                 className="h-12 rounded-xl text-base"

@@ -2,7 +2,10 @@ import Image from "next/image"
 import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal } from "lucide-react"
 import type { Post } from "@/lib/study-data"
 
-export function InstagramPost({ post }: { post: Post }) {
+export function InstagramPost({ post, language = "zh" }: { post: Post; language?: "zh" | "en" }) {
+  const username = post.usernameEn && language === "en" ? post.usernameEn : post.username
+  const caption = language === "en" && post.captionEn ? post.captionEn : post.caption
+
   return (
     <article className="overflow-hidden rounded-3xl border border-border bg-card shadow-sm">
       {/* Header */}
@@ -12,10 +15,10 @@ export function InstagramPost({ post }: { post: Post }) {
           className="flex size-10 items-center justify-center rounded-full text-sm font-bold text-white"
           style={{ backgroundColor: post.avatarColor }}
         >
-          {post.username.slice(0, 1)}
+          {username.slice(0, 1)}
         </span>
         <div className="min-w-0 flex-1 leading-tight">
-          <p className="truncate text-sm font-bold text-card-foreground">{post.username}</p>
+          <p className="truncate text-sm font-bold text-card-foreground">{username}</p>
           <p className="truncate text-xs text-muted-foreground">@{post.handle}</p>
         </div>
         <MoreHorizontal className="size-5 text-muted-foreground" aria-hidden="true" />
@@ -25,7 +28,7 @@ export function InstagramPost({ post }: { post: Post }) {
       <div className="relative aspect-square w-full bg-muted">
         <Image
           src={post.image || "/placeholder.svg"}
-          alt={`${post.username} 的貼文圖片`}
+          alt={language === "en" ? `${username}'s post image` : `${username} 的貼文圖片`}
           fill
           sizes="(max-width: 768px) 100vw, 40vw"
           className="object-cover"
@@ -43,12 +46,14 @@ export function InstagramPost({ post }: { post: Post }) {
       {/* Likes + caption */}
       <div className="space-y-1 px-4 pb-4 pt-2">
         <p className="text-sm font-bold text-card-foreground">
-          {post.likes.toLocaleString("zh-TW")} 個讚
+          {language === "en"
+            ? `${post.likes.toLocaleString("en-US")} likes`
+            : `${post.likes.toLocaleString("zh-TW")} 個讚`}
         </p>
         <p className="text-base leading-relaxed text-card-foreground">
-          <span className="font-bold">{post.username}</span>{" "}
+          <span className="font-bold">{username}</span>{" "}
           <span className="text-pretty whitespace-pre-line">
-            {post.caption.replace(/\\n/g, "\n")}
+            {caption.replace(/\\n/g, "\n")}
           </span>
         </p>
       </div>
