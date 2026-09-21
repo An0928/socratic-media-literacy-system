@@ -54,6 +54,7 @@ async function ensureSchema(): Promise<void> {
           student_id VARCHAR(64) NOT NULL PRIMARY KEY,
           has_seen_welcome TINYINT(1) NOT NULL DEFAULT 0,
           is_structured TINYINT(1) NOT NULL DEFAULT 1,
+          language VARCHAR(5) NOT NULL DEFAULT 'zh',
           created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
         )
       `)
@@ -81,7 +82,7 @@ async function ensureSchema(): Promise<void> {
 // In-memory fallback implementation (preview only)
 // ---------------------------------------------------------------------------
 
-type MemStudent = { hasSeenWelcome: boolean; isStructured: boolean }
+type MemStudent = { hasSeenWelcome: boolean; isStructured: boolean; language: "zh" | "en" }
 const memStudents = new Map<string, MemStudent>()
 const memSubmissions = new Map<string, Map<string, Submission>>()
 
@@ -92,32 +93,51 @@ const memSubmissions = new Map<string, Map<string, Submission>>()
 export async function getOrCreateStudent(
   studentId: string,
   isStructured?: boolean,
-): Promise<{ hasSeenWelcome: boolean; isStructured: boolean }> {
+  language?: "zh" | "en",
+): Promise<{ hasSeenWelcome: boolean; isStructured: boolean; language: "zh" | "en" }> {
   if (useMysql) {
     await ensureSchema()
     const db = getPool()
-    if (isStructured === undefined) {
-      await db.query("INSERT IGNORE INTO students (student_id) VALUES (?)", [studentId])
-    } else {
-      await db.query("INSERT IGNORE INTO students (student_id, is_structured) VALUES (?, ?)", [studentId, isStructured ? 1 : 0])
+    const columns = ["student_id"]
+    const placeholders = ["?"]
+    const values: (string | number)[] = [studentId]
+    if (isStructured !== undefined) {
+      columns.push("is_structured")
+      placeholders.push("?")
+      values.push(isStructured ? 1 : 0)
     }
+    if (language !== undefined) {
+      columns.push("language")
+      placeholders.push("?")
+      values.push(language)
+    }
+    await db.query(
+      `INSERT IGNORE INTO students (${columns.join(", ")}) VALUES (${placeholders.join(", ")})`,
+      values,
+    )
     const [rows] = await db.query<mysql.RowDataPacket[]>(
-      "SELECT has_seen_welcome, is_structured FROM students WHERE student_id = ?",
+      "SELECT has_seen_welcome, is_structured, language FROM students WHERE student_id = ?",
       [studentId],
     )
     const row = rows[0]
     return {
       hasSeenWelcome: Boolean(row?.has_seen_welcome),
       isStructured: Boolean(row?.is_structured),
+      language: (row?.language as "zh" | "en") ?? "zh",
     }
   }
 
   if (!memStudents.has(studentId)) {
-    memStudents.set(studentId, { hasSeenWelcome: false, isStructured: isStructured ?? true })
+    memStudents.set(studentId, {
+      hasSeenWelcome: false,
+      isStructured: isStructured ?? true,
+      language: language ?? "zh",
+    })
   }
   return {
     hasSeenWelcome: memStudents.get(studentId)!.hasSeenWelcome,
     isStructured: memStudents.get(studentId)!.isStructured,
+    language: memStudents.get(studentId)!.language ?? "zh",
   }
 }
 

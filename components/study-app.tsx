@@ -140,6 +140,7 @@ export function StudyApp({ initialState }: { initialState: StudentState | null }
         post={activePost}
         existing={state.submissions.find((submission) => submission.postId === activePostId)}
         isStructured={state.isStructured}
+        language={state.language}
         canSaveSubmission={!isAdmin}
         onComplete={handleAnalysisComplete}
         onExit={() => {

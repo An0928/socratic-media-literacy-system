@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 export function LoginScreen({ onLoggedIn }: { onLoggedIn: (state: StudentState) => void }) {
   const [studentId, setStudentId] = useState("")
   const [groupCode, setGroupCode] = useState("")
+  const [language, setLanguage] = useState<"zh" | "en">("zh")
   const [error, setError] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
 
@@ -18,14 +19,14 @@ export function LoginScreen({ onLoggedIn }: { onLoggedIn: (state: StudentState) 
 
     const normalizedGroupCode = groupCode.trim().toUpperCase()
     if (normalizedGroupCode !== "0" && normalizedGroupCode !== "1") {
-      setError("請輸入有效的組別（0 或 1）")
+      setError(language === "en" ? "Please enter a valid group (0 or 1)" : "請輸入有效的組別（0 或 1）")
       return
     }
 
     startTransition(async () => {
-      const res = await login(studentId, normalizedGroupCode)
+      const res = await login(studentId, normalizedGroupCode, language)
       if (!res.ok || !res.state) {
-        setError(res.error ?? "登入失敗，請再試一次")
+        setError(res.error ?? (language === "en" ? "Login failed, please try again" : "登入失敗，請再試一次"))
         return
       }
       onLoggedIn(res.state)
@@ -44,21 +45,45 @@ export function LoginScreen({ onLoggedIn }: { onLoggedIn: (state: StudentState) 
               </span>
             </div>
             <h1 className="text-pretty text-2xl font-extrabold text-card-foreground">
-              媒體素養訓練系統
+              {language === "en" ? "Media Literacy Training System" : "媒體素養訓練系統"}
             </h1>
-            <p className="mt-2 text-sm text-muted-foreground">請輸入你的學號以開始</p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              {language === "en" ? "Enter your student ID to begin" : "請輸入你的學號以開始"}
+            </p>
           </div>
 
           <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-4">
+            <div className="mb-6 flex justify-center gap-2">
+              <button
+                type="button"
+                onClick={() => setLanguage("zh")}
+                className={`rounded-full px-4 py-1.5 text-sm font-semibold transition-colors ${language === "zh"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-muted-foreground hover:text-foreground"
+                  }`}
+              >
+                中文
+              </button>
+              <button
+                type="button"
+                onClick={() => setLanguage("en")}
+                className={`rounded-full px-4 py-1.5 text-sm font-semibold transition-colors ${language === "en"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-muted-foreground hover:text-foreground"
+                  }`}
+              >
+                English
+              </button>
+            </div>
             <div className="flex flex-col gap-2">
               <label htmlFor="studentId" className="text-sm font-semibold text-card-foreground">
-                學號
+                {language === "en" ? "Student ID" : "學號"}
               </label>
               <Input
                 id="studentId"
                 value={studentId}
                 onChange={(e) => setStudentId(e.target.value)}
-                placeholder="例如：S1130123"
+                placeholder={language === "en" ? "e.g., S1130123" : "例如：S1130123"}
                 autoComplete="off"
                 inputMode="text"
                 className="h-12 rounded-xl text-base"
@@ -68,7 +93,7 @@ export function LoginScreen({ onLoggedIn }: { onLoggedIn: (state: StudentState) 
 
             <div className="flex flex-col gap-2">
               <label htmlFor="groupCode" className="text-sm font-semibold text-card-foreground">
-                組別
+                {language === "en" ? "Group" : "組別"}
               </label>
               <Input
                 id="groupCode"
@@ -89,15 +114,17 @@ export function LoginScreen({ onLoggedIn }: { onLoggedIn: (state: StudentState) 
               disabled={pending || !studentId.trim() || !groupCode.trim()}
               className="h-12 rounded-xl bg-primary text-base font-bold text-primary-foreground shadow-sm transition-transform hover:bg-primary/90 active:scale-[0.98]"
             >
-              {pending ? "登入中…" : "開始"}
+              {pending ? (language === "en" ? "Logging in…" : "登入中…") : language === "en" ? "Start" : "開始"}
             </Button>
           </form>
         </div>
 
         <p className="mt-6 text-center text-xs leading-relaxed text-muted-foreground">
-          本系統為媒體素養研究之用，不需要密碼。
+          {language === "en"
+            ? "This system is for media literacy research. No password is required."
+            : "本系統為媒體素養研究之用，不需要密碼。"}
           <br />
-          你的學號僅用於記錄學習進度。
+          {language === "en" ? "Your student ID is used only to track learning progress." : "你的學號僅用於記錄學習進度。"}
         </p>
       </div>
     </main>

@@ -12,10 +12,20 @@ import { JudgmentScreen } from "@/components/screens/judgment-screen"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 
-const INTRO_MESSAGE = `接下來我會針對這則貼文問幾個問題，請根據貼文的文字內容和圖片畫面來回答。
+function getIntroMessage(language: "zh" | "en"): string {
+  if (language === "en") {
+    return `Next, I'll ask you a few questions about this post. Please answer based on the text and image content.
+We'll discuss and think about this post together, and at the end you'll decide for yourself whether it's true, false, or unsure. What matters is your thinking process, not rushing to find the "correct answer."
+
+Are you ready?`
+  }
+  return `接下來我會針對這則貼文問幾個問題，請根據貼文的文字內容和圖片畫面來回答。
 我們會一起討論、思考這則貼文，最後由你自己判斷這則貼文是真的、假的，還是不確定。重要的是你的思考過程，不是急著找到「正確答案」。
 
 準備好了嗎？`
+}
+
+const STAGE_LABELS_EN = ["Observation", "Assumption-Challenging", "Alternative Perspectives", "Judgment"]
 
 type ChatMessage = { role: "ai" | "user"; text: string; stage?: number }
 
@@ -24,11 +34,12 @@ type Props = {
   existing?: Submission
   isStructured?: boolean
   canSaveSubmission?: boolean
+  language?: "zh" | "en"
   onComplete: () => void
   onExit: () => void
 }
 
-export function AnalysisScreen({ post, existing, onComplete, onExit, isStructured: isStructuredProp = true, canSaveSubmission = true }: Props) {
+export function AnalysisScreen({ post, existing, onComplete, onExit, isStructured: isStructuredProp = true, canSaveSubmission = true, language = "zh" }: Props) {
   // stageIndex points at the AI turn the student is currently responding to.
   const [stageIndex, setStageIndex] = useState(0)
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -57,7 +68,7 @@ export function AnalysisScreen({ post, existing, onComplete, onExit, isStructure
 
   useEffect(() => {
     setStageIndex(0)
-    setMessages([{ role: "ai", text: INTRO_MESSAGE }])
+    setMessages([{ role: "ai", text: getIntroMessage(language) }])
     setStageMessages([])
     setInput("")
     setChatDone(false)
@@ -66,7 +77,7 @@ export function AnalysisScreen({ post, existing, onComplete, onExit, isStructure
     setPreviousStageLastAnswer(undefined)
     initializedStageRef.current = null
     introShownRef.current = post.id
-  }, [post.id])
+  }, [language, post.id])
 
   useEffect(() => {
     setStageMessages([])
@@ -88,17 +99,23 @@ export function AnalysisScreen({ post, existing, onComplete, onExit, isStructure
     async function initializeStageReply() {
       setIsLoading(true)
       try {
-        const stagePrompt = currentPost.script[stageIndex]?.prompt ?? ""
+        const stagePrompt = language === "en"
+          ? (currentPost.script[stageIndex]?.promptEn ?? currentPost.script[stageIndex]?.prompt ?? "")
+          : (currentPost.script[stageIndex]?.prompt ?? "")
+        const postCaption = language === "en"
+          ? (currentPost.captionEn ?? currentPost.caption)
+          : currentPost.caption
         const aiReply = await getAiReply(
           [],
           stageIndex,
           isStructured,
-          currentPost.caption,
+          postCaption,
           currentPost.image_description,
           currentPost.week,
           stagePrompt,
           undefined,
           0,
+          language,
           previousStageLastAnswer,
         )
         const cleanedReply = aiReply.replace(/\[NEXT_STAGE\]/gi, "").trim()
@@ -117,7 +134,15 @@ export function AnalysisScreen({ post, existing, onComplete, onExit, isStructure
         }
       } catch {
         if (!ignore) {
-          setMessages((prev) => [...prev, { role: "ai", text: "目前無法立即產生引導，請稍後再試。" }])
+          setMessages((prev) => [
+            ...prev,
+            {
+              role: "ai",
+              text: language === "en"
+                ? "Unable to generate guidance right now. Please try again later."
+                : "目前無法立即產生引導，請稍後再試。",
+            },
+          ])
         }
       } finally {
         if (!ignore) {
@@ -131,7 +156,7 @@ export function AnalysisScreen({ post, existing, onComplete, onExit, isStructure
     return () => {
       ignore = true
     }
-  }, [chatDone, introConfirmed, isStructured, post.id, stageIndex])
+  }, [chatDone, introConfirmed, isStructured, language, post.id, stageIndex])
 
   // The active stage for the progress bar: number of completed stages.
   const activeStage = chatDone ? STAGE_LABELS.length : stageIndex
@@ -164,17 +189,23 @@ export function AnalysisScreen({ post, existing, onComplete, onExit, isStructure
     setIsLoading(true)
 
     try {
-      const stagePrompt = post.script[stageIndex]?.prompt ?? ""
+      const stagePrompt = language === "en"
+        ? (post.script[stageIndex]?.promptEn ?? post.script[stageIndex]?.prompt ?? "")
+        : (post.script[stageIndex]?.prompt ?? "")
+      const postCaption = language === "en"
+        ? (post.captionEn ?? post.caption)
+        : post.caption
       const aiReply = await getAiReply(
         nextStageMessages,
         stageIndex,
         isStructured,
-        post.caption,
+        postCaption,
         post.image_description,
         post.week,
         stagePrompt,
         text,
         turnCount,
+        language,
       )
       const shouldAdvance = /\[NEXT_STAGE\]/i.test(aiReply)
       const cleanedReply = aiReply.replace(/\[NEXT_STAGE\]/gi, "").trim()
@@ -207,12 +238,13 @@ export function AnalysisScreen({ post, existing, onComplete, onExit, isStructure
   }
 
   function buildChatLog(): string {
+    const stageLabels = language === "en" ? STAGE_LABELS_EN : STAGE_LABELS
     return messages
       .map((m) => {
         if (m.role === "ai" && isStructured && m.stage !== undefined) {
-          return `AI [${STAGE_LABELS[m.stage]}]：${m.text}`
+          return `AI [${stageLabels[m.stage]}]: ${m.text}`
         }
-        return `${m.role === "ai" ? "AI" : "學生"}：${m.text}`
+        return `${m.role === "ai" ? "AI" : language === "en" ? "Student" : "學生"}: ${m.text}`
       })
       .join("\n")
   }
@@ -254,8 +286,10 @@ export function AnalysisScreen({ post, existing, onComplete, onExit, isStructure
             <ArrowLeft className="size-5" aria-hidden="true" />
           </Button>
           <div>
-            <p className="text-xs font-medium text-muted-foreground">第 {post.week} 週 · 分析貼文</p>
-            <p className="text-sm font-bold text-card-foreground">與 AI 一起思考</p>
+            <p className="text-xs font-medium text-muted-foreground">
+              {language === "en" ? `Week ${post.week} · Analyzing Post` : `第 ${post.week} 週 · 分析貼文`}
+            </p>
+            <p className="text-sm font-bold text-card-foreground">{language === "en" ? "Thinking with AI" : "與 AI 一起思考"}</p>
           </div>
         </div>
       </header>
@@ -268,7 +302,9 @@ export function AnalysisScreen({ post, existing, onComplete, onExit, isStructure
 
         {/* Right: chat */}
         <div className="flex min-h-[60vh] flex-1 flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-sm lg:h-[calc(100vh-7rem)]">
-          {showStageProgress ? <StageProgress activeStage={activeStage} /> : null}
+          {showStageProgress ? (
+            <StageProgress activeStage={activeStage} labels={language === "en" ? STAGE_LABELS_EN : STAGE_LABELS} />
+          ) : null}
 
           <div ref={scrollRef} className="flex-1 space-y-4 overflow-y-auto px-4 py-5">
             {messages.map((m, i) => (
@@ -280,15 +316,17 @@ export function AnalysisScreen({ post, existing, onComplete, onExit, isStructure
                 <span className="flex size-10 items-center justify-center rounded-full bg-success text-success-foreground">
                   <Check className="size-5" aria-hidden="true" />
                 </span>
-                <p className="text-sm font-bold text-card-foreground">思考完成！</p>
+                <p className="text-sm font-bold text-card-foreground">{language === "en" ? "Thinking Complete!" : "思考完成！"}</p>
                 <p className="text-sm leading-relaxed text-muted-foreground">
-                  你已經從不同角度分析過這則貼文，現在換你做出判斷。
+                  {language === "en"
+                    ? "You've analyzed this post from different angles. Now it's your turn to make a judgment."
+                    : "你已經從不同角度分析過這則貼文，現在換你做出判斷。"}
                 </p>
                 <Button
                   onClick={() => setShowJudgment(true)}
                   className="h-11 rounded-xl bg-primary px-6 font-bold text-primary-foreground transition-transform hover:bg-primary/90 active:scale-[0.98]"
                 >
-                  做出我的判斷
+                  {language === "en" ? "Make My Judgment" : "做出我的判斷"}
                 </Button>
               </div>
             ) : null}
@@ -302,7 +340,7 @@ export function AnalysisScreen({ post, existing, onComplete, onExit, isStructure
               <Input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="輸入你的想法…"
+                placeholder={language === "en" ? "Type your thoughts…" : "輸入你的想法…"}
                 className="h-12 rounded-xl text-base"
                 aria-label="輸入你的想法"
               />
@@ -323,11 +361,11 @@ export function AnalysisScreen({ post, existing, onComplete, onExit, isStructure
   )
 }
 
-function StageProgress({ activeStage }: { activeStage: number }) {
+function StageProgress({ activeStage, labels }: { activeStage: number; labels: readonly string[] }) {
   return (
     <div className="border-b border-border bg-card px-4 py-4">
       <ol className="flex items-center">
-        {STAGE_LABELS.map((label, i) => {
+        {labels.map((label, i) => {
           const done = i < activeStage
           const current = i === activeStage
           return (
@@ -354,7 +392,7 @@ function StageProgress({ activeStage }: { activeStage: number }) {
                   {label}
                 </span>
               </div>
-              {i < STAGE_LABELS.length - 1 ? (
+              {i < labels.length - 1 ? (
                 <span
                   className={[
                     "mx-1 h-0.5 flex-1 rounded-full transition-colors sm:mx-2",
