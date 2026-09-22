@@ -1,17 +1,11 @@
 import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
-import { Nunito, Geist_Mono } from 'next/font/google'
+import '@fontsource-variable/nunito'
+import '@fontsource/geist-mono/400.css'
+import '@fontsource/geist-mono/500.css'
+import '@fontsource/geist-mono/600.css'
+import '@fontsource/geist-mono/700.css'
 import './globals.css'
-
-const nunito = Nunito({
-  variable: '--font-nunito',
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700', '800'],
-})
-const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
-  subsets: ['latin'],
-})
 
 export const metadata: Metadata = {
   title: '媒體素養訓練系統',
@@ -49,7 +43,7 @@ export default function RootLayout({
   return (
     <html
       lang="zh-Hant"
-      className={`light ${nunito.variable} ${geistMono.variable} bg-background`}
+      className="light bg-background"
     >
       <body className="font-sans antialiased">
         {children}
