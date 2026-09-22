@@ -268,6 +268,7 @@ export function AnalysisScreen({ post, existing, onComplete, onExit, isStructure
         onSelect={handleJudgment}
         onContinue={onComplete}
         saving={pending}
+        isTrue={post.isTrue}
         language={language}
       />
     )

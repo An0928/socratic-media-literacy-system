@@ -9,6 +9,7 @@ type Props = {
   onSelect: (judgment: Judgment) => void
   onContinue: () => void
   saving: boolean
+  isTrue: boolean
   language?: "zh" | "en"
 }
 
@@ -47,21 +48,25 @@ function getOptions(language: "zh" | "en") {
   ]
 }
 
-export function JudgmentScreen({ onSelect, onContinue, saving, language = "zh" }: Props) {
+export function JudgmentScreen({ onSelect, onContinue, saving, isTrue, language = "zh" }: Props) {
   const [selected, setSelected] = useState<Judgment | null>(null)
+  const [phase, setPhase] = useState<"choose" | "feedback" | "complete">("choose")
   const options = getOptions(language)
 
   function choose(value: Judgment) {
     if (selected) return
     setSelected(value)
     onSelect(value)
+    setPhase("feedback")
   }
+
+  const isCorrect = selected === "real" ? isTrue : selected === "fake" ? !isTrue : null
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-background px-4 py-10">
       <div className="w-full max-w-md">
         <div className="rounded-3xl border border-border bg-card p-8 shadow-lg">
-          {!selected ? (
+          {phase === "choose" ? (
             <>
               <h1 className="text-balance text-center text-2xl font-extrabold text-card-foreground">
                 {language === "en" ? "Based on your thinking, what's your judgment?" : "根據你的思考，你的判斷是？"}
@@ -87,6 +92,42 @@ export function JudgmentScreen({ onSelect, onContinue, saving, language = "zh" }
                 ))}
               </div>
             </>
+          ) : phase === "feedback" ? (
+            <div className="flex flex-col items-center text-center">
+              <span
+                className={`flex size-20 animate-in zoom-in-50 items-center justify-center rounded-full shadow-md duration-500 ${isCorrect === true
+                    ? "bg-success text-success-foreground"
+                    : isCorrect === false
+                      ? "bg-destructive text-destructive-foreground"
+                      : "bg-muted text-muted-foreground"
+                  }`}
+              >
+                {isCorrect === true ? (
+                  <Check className="size-10" aria-hidden="true" strokeWidth={3} />
+                ) : isCorrect === false ? (
+                  <X className="size-10" aria-hidden="true" strokeWidth={3} />
+                ) : (
+                  <HelpCircle className="size-10" aria-hidden="true" strokeWidth={3} />
+                )}
+              </span>
+              <h2 className="mt-6 text-2xl font-extrabold text-card-foreground">
+                {isCorrect === true
+                  ? language === "en" ? "Your judgment was correct!" : "你的判斷正確！"
+                  : isCorrect === false
+                    ? language === "en" ? "Your judgment was incorrect." : "你的判斷不正確。"
+                    : language === "en"
+                      ? `This post was actually ${isTrue ? "true" : "false"}.`
+                      : `這則貼文其實是「${isTrue ? "真的" : "假的"}」。`}
+              </h2>
+              <Button
+                onClick={() => setPhase("complete")}
+                className="mt-8 h-12 w-full rounded-xl bg-primary text-base font-bold text-primary-foreground shadow-sm transition-transform hover:bg-primary/90 active:scale-[0.98]"
+              >
+                <span className="flex items-center gap-1.5">
+                  {language === "en" ? "Continue" : "繼續"} <ArrowRight className="size-5" aria-hidden="true" />
+                </span>
+              </Button>
+            </div>
           ) : (
             <div className="flex flex-col items-center text-center">
               <span className="flex size-20 animate-in zoom-in-50 items-center justify-center rounded-full bg-success text-success-foreground shadow-md duration-500">

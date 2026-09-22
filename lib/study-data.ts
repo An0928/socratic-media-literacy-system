@@ -25,6 +25,7 @@ export type Post = {
   usernameEn?: string
   image_description: string
   likes: number
+  isTrue: boolean
   // Per-post scripted conversation. Each entry is one AI turn.
   script: Stage[]
 }
@@ -111,6 +112,7 @@ function mapRowToPost(row: RowDataPacket): Post {
     usernameEn: (row.username_en as string) ?? undefined,
     image_description: (row.image_description as string) ?? "",
     likes: Number(row.likes),
+    isTrue: Boolean(row.is_true),
     script: buildScript({
       observe: (row.observe_prompt as string) ?? "",
       challenge: (row.challenge_prompt as string) ?? "",
@@ -126,7 +128,7 @@ export async function getPostsByWeek(week: number): Promise<Post[]> {
   await ensurePostsSchema()
   const db = getPool()
   const [rows] = await db.query<RowDataPacket[]>(
-    `SELECT id, week, slot, username, username_en, handle, avatar_color, image_url, image_url_en, caption, caption_en, likes, image_description, observe_prompt, observe_prompt_en, challenge_prompt, challenge_prompt_en, alternative_prompt, alternative_prompt_en
+    `SELECT id, week, slot, username, username_en, handle, avatar_color, image_url, image_url_en, caption, caption_en, likes, is_true, image_description, observe_prompt, observe_prompt_en, challenge_prompt, challenge_prompt_en, alternative_prompt, alternative_prompt_en
      FROM posts
      WHERE week = ?
      ORDER BY slot ASC`,
@@ -139,7 +141,7 @@ export async function getPostById(id: string): Promise<Post | undefined> {
   await ensurePostsSchema()
   const db = getPool()
   const [rows] = await db.query<RowDataPacket[]>(
-    `SELECT id, week, slot, username, username_en, handle, avatar_color, image_url, image_url_en, caption, caption_en, likes, image_description, observe_prompt, observe_prompt_en, challenge_prompt, challenge_prompt_en, alternative_prompt, alternative_prompt_en
+    `SELECT id, week, slot, username, username_en, handle, avatar_color, image_url, image_url_en, caption, caption_en, likes, is_true, image_description, observe_prompt, observe_prompt_en, challenge_prompt, challenge_prompt_en, alternative_prompt, alternative_prompt_en
      FROM posts
      WHERE id = ?
      LIMIT 1`,
