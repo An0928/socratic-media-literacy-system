@@ -19,6 +19,7 @@ export type Post = {
   handle: string
   avatarColor: string
   image: string
+  imageEn?: string
   caption: string
   captionEn?: string
   usernameEn?: string
@@ -104,6 +105,7 @@ function mapRowToPost(row: RowDataPacket): Post {
     handle: row.handle as string,
     avatarColor: row.avatar_color as string,
     image: row.image_url as string,
+    imageEn: (row.image_url_en as string) ?? undefined,
     caption: row.caption as string,
     captionEn: (row.caption_en as string) ?? undefined,
     usernameEn: (row.username_en as string) ?? undefined,
@@ -124,7 +126,7 @@ export async function getPostsByWeek(week: number): Promise<Post[]> {
   await ensurePostsSchema()
   const db = getPool()
   const [rows] = await db.query<RowDataPacket[]>(
-    `SELECT id, week, slot, username, username_en, handle, avatar_color, image_url, caption, caption_en, likes, image_description, observe_prompt, observe_prompt_en, challenge_prompt, challenge_prompt_en, alternative_prompt, alternative_prompt_en
+    `SELECT id, week, slot, username, username_en, handle, avatar_color, image_url, image_url_en, caption, caption_en, likes, image_description, observe_prompt, observe_prompt_en, challenge_prompt, challenge_prompt_en, alternative_prompt, alternative_prompt_en
      FROM posts
      WHERE week = ?
      ORDER BY slot ASC`,
@@ -137,7 +139,7 @@ export async function getPostById(id: string): Promise<Post | undefined> {
   await ensurePostsSchema()
   const db = getPool()
   const [rows] = await db.query<RowDataPacket[]>(
-    `SELECT id, week, slot, username, username_en, handle, avatar_color, image_url, caption, caption_en, likes, image_description, observe_prompt, observe_prompt_en, challenge_prompt, challenge_prompt_en, alternative_prompt, alternative_prompt_en
+    `SELECT id, week, slot, username, username_en, handle, avatar_color, image_url, image_url_en, caption, caption_en, likes, image_description, observe_prompt, observe_prompt_en, challenge_prompt, challenge_prompt_en, alternative_prompt, alternative_prompt_en
      FROM posts
      WHERE id = ?
      LIMIT 1`,

@@ -5,6 +5,7 @@ import type { Post } from "@/lib/study-data"
 export function InstagramPost({ post, language = "zh" }: { post: Post; language?: "zh" | "en" }) {
   const username = post.usernameEn && language === "en" ? post.usernameEn : post.username
   const caption = language === "en" && post.captionEn ? post.captionEn : post.caption
+  const imageSrc = language === "en" && post.imageEn ? post.imageEn : post.image
 
   return (
     <article className="overflow-hidden rounded-3xl border border-border bg-card shadow-sm">
@@ -27,7 +28,7 @@ export function InstagramPost({ post, language = "zh" }: { post: Post; language?
       {/* Image */}
       <div className="relative aspect-square w-full bg-muted">
         <Image
-          src={post.image || "/placeholder.svg"}
+          src={imageSrc || "/placeholder.svg"}
           alt={language === "en" ? `${username}'s post image` : `${username} 的貼文圖片`}
           fill
           sizes="(max-width: 768px) 100vw, 40vw"
