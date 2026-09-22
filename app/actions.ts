@@ -14,6 +14,7 @@ import { isMeaninglessResponse, isConfusedResponse } from "@/lib/chat-helpers"
 import { getPostById, getPostsByWeek, type Post } from "@/lib/study-data"
 
 const COOKIE = "mlt_student"
+const ADMIN_LANG_COOKIE = "mlt_admin_lang"
 
 const POST_BOUND_INSTRUCTION = [
   "重要規則：你只能引導學生觀察『這張貼文或貼文圖片裡實際看得到的內容』，例如帳號名稱、貼文文字、圖片內容。絕對禁止要求學生去查看『過去貼文』『歷史留言』『其他評價』『網路搜尋』『正式新聞報導』『其他管道』等貼文或貼文圖片以外不存在的資訊，也不能要求學生「比較」這則貼文和任何圖片以外不存在的東西（例如『跟正式新聞報導比起來少了什麼』），因為學生只能看到這一張貼文的圖片，沒有其他資料來源。如果你想引導學生思考來源可信度，只能基於『這張圖和文案上寫了什麼、沒寫什麼』來提問。",
@@ -301,11 +302,12 @@ export async function getStudentState(): Promise<StudentState | null> {
   const studentId = store.get(COOKIE)?.value
   if (!studentId) return null
   if (studentId.toLowerCase() === "admin") {
+    const adminLang = store.get(ADMIN_LANG_COOKIE)?.value
     return {
       studentId: "admin",
       hasSeenWelcome: true,
       isStructured: true,
-      language: "zh",
+      language: adminLang === "en" ? "en" : "zh",
       submissions: [],
     }
   }
@@ -340,6 +342,12 @@ export async function login(
       path: "/",
       maxAge: 60 * 60 * 24 * 365,
     })
+    store.set(ADMIN_LANG_COOKIE, language, {
+      httpOnly: true,
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 365,
+    })
     revalidatePath("/")
     return {
       ok: true,
@@ -347,7 +355,7 @@ export async function login(
         studentId: "admin",
         hasSeenWelcome: true,
         isStructured: true,
-        language: "zh",
+        language,
         submissions: [],
       },
     }
