@@ -158,6 +158,7 @@ export function StudyApp({ initialState }: { initialState: StudentState | null }
       currentWeek={currentWeek}
       completedIds={completedIds}
       isAdmin={isAdmin}
+      language={state.language}
       onOpenPost={openPost}
       onLogout={handleLogout}
     />

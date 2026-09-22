@@ -13,6 +13,7 @@ type Props = {
   currentWeek: number
   completedIds: Set<string>
   isAdmin?: boolean
+  language?: "zh" | "en"
   onOpenPost: (post: Post) => void
   onLogout: () => void
 }
@@ -24,6 +25,7 @@ export function ProgressScreen({
   currentWeek,
   completedIds,
   isAdmin = false,
+  language = "zh",
   onOpenPost,
   onLogout,
 }: Props) {
@@ -67,20 +69,32 @@ export function ProgressScreen({
   }
 
   const encouragement = isAdmin
-    ? "管理員模式已啟用，所有貼文都可直接開啟檢視。"
+    ? language === "en"
+      ? "Admin mode enabled. All posts can be opened directly."
+      : "管理員模式已啟用，所有貼文都可直接開啟檢視。"
     : completedThisWeek === 0
-      ? "新的一週開始了，一起來分析第一則貼文吧！"
+      ? language === "en"
+        ? "A new week has started! Let's analyze the first post."
+        : "新的一週開始了，一起來分析第一則貼文吧！"
       : completedThisWeek < POSTS_PER_WEEK
-        ? "做得很好，再完成一則就達成本週目標了！"
-        : "太棒了！你已完成本週所有貼文，下週見！"
+        ? language === "en"
+          ? "Great work! One more post to reach this week's goal."
+          : "做得很好，再完成一則就達成本週目標了！"
+        : language === "en"
+          ? "Awesome! You've completed all posts this week. See you next week!"
+          : "太棒了！你已完成本週所有貼文，下週見！"
 
   return (
     <main className="min-h-screen bg-background">
       <header className="border-b border-border bg-card">
         <div className="mx-auto flex max-w-2xl items-center justify-between px-4 py-4">
           <div>
-            <p className="text-xs font-medium text-muted-foreground">媒體素養訓練系統</p>
-            <p className="text-sm font-bold text-card-foreground">學號：{studentId}</p>
+            <p className="text-xs font-medium text-muted-foreground">
+              {language === "en" ? "Media Literacy Training System" : "媒體素養訓練系統"}
+            </p>
+            <p className="text-sm font-bold text-card-foreground">
+              {language === "en" ? "Student ID: " : "學號："}{studentId}
+            </p>
           </div>
           <Button
             variant="ghost"
@@ -88,7 +102,7 @@ export function ProgressScreen({
             className="h-9 gap-1.5 rounded-xl text-muted-foreground hover:text-foreground"
           >
             <LogOut className="size-4" aria-hidden="true" />
-            登出
+            {language === "en" ? "Logout" : "登出"}
           </Button>
         </div>
       </header>
@@ -97,9 +111,13 @@ export function ProgressScreen({
         {/* Week heading + progress */}
         <section className="rounded-3xl border border-border bg-card p-6 shadow-sm">
           <div className="flex items-end justify-between gap-4">
-            <h1 className="text-2xl font-extrabold text-card-foreground">第 {currentWeek} 週</h1>
+            <h1 className="text-2xl font-extrabold text-card-foreground">
+              {language === "en" ? `Week ${currentWeek}` : `第 ${currentWeek} 週`}
+            </h1>
             <p className="text-sm font-bold text-primary">
-              本週進度：{completedThisWeek} / {POSTS_PER_WEEK} 則完成
+              {language === "en"
+                ? `This Week's Progress: ${completedThisWeek} / ${POSTS_PER_WEEK} completed`
+                : `本週進度：${completedThisWeek} / ${POSTS_PER_WEEK} 則完成`}
             </p>
           </div>
           <div className="mt-3 h-2.5 w-full overflow-hidden rounded-full bg-muted">
@@ -127,6 +145,7 @@ export function ProgressScreen({
                         post={post}
                         state={tileState(post, index)}
                         onOpen={() => onOpenPost(post)}
+                        language={language}
                       />
                     ))}
                   </div>
@@ -136,7 +155,9 @@ export function ProgressScreen({
         ) : (
           <section className="mt-5 grid gap-4 sm:grid-cols-2">
             {weekPosts.length === 0 ? (
-              <p className="text-sm text-muted-foreground sm:col-span-2">載入貼文中…</p>
+              <p className="text-sm text-muted-foreground sm:col-span-2">
+                {language === "en" ? "Loading posts…" : "載入貼文中…"}
+              </p>
             ) : (
               weekPosts.map((post, index) => (
                 <PostTile
@@ -144,6 +165,7 @@ export function ProgressScreen({
                   post={post}
                   state={tileState(post, index)}
                   onOpen={() => onOpenPost(post)}
+                  language={language}
                 />
               ))
             )}
@@ -154,7 +176,7 @@ export function ProgressScreen({
         <section className="mt-6 rounded-3xl border border-border bg-card p-6 shadow-sm">
           <h2 className="flex items-center gap-2 text-sm font-bold text-card-foreground">
             <Trophy className="size-4 text-primary" aria-hidden="true" />
-            總體進度
+            {language === "en" ? "Overall Progress" : "總體進度"}
           </h2>
           <ol className="mt-4 flex items-center justify-between gap-2">
             {Array.from({ length: TOTAL_WEEKS }, (_, idx) => {
@@ -189,7 +211,7 @@ export function ProgressScreen({
                       state === "locked" ? "text-locked" : "text-card-foreground",
                     ].join(" ")}
                   >
-                    第 {week} 週
+                    {language === "en" ? `Week ${week}` : `第 ${week} 週`}
                   </span>
                 </li>
               )
@@ -205,19 +227,28 @@ function PostTile({
   post,
   state,
   onOpen,
+  language = "zh",
 }: {
   post: Post
   state: TileState
   onOpen: () => void
+  language?: "zh" | "en"
 }) {
   const locked = state === "locked"
+  const username = language === "en" && post.usernameEn ? post.usernameEn : post.username
+  const caption = language === "en" && post.captionEn ? post.captionEn : post.caption
+  const imageSrc = language === "en" && post.imageEn ? post.imageEn : post.image
 
   return (
     <button
       type="button"
       onClick={onOpen}
       disabled={locked}
-      aria-label={`第 ${post.week} 週 貼文：${post.username}`}
+      aria-label={
+        language === "en"
+          ? `Week ${post.week} post: ${username}`
+          : `第 ${post.week} 週 貼文：${username}`
+      }
       className={[
         "group flex items-center gap-4 rounded-2xl border bg-card p-4 text-left transition-all",
         locked
@@ -228,7 +259,7 @@ function PostTile({
     >
       <div className="relative size-16 shrink-0 overflow-hidden rounded-xl bg-muted">
         <Image
-          src={post.image || "/placeholder.svg"}
+          src={imageSrc || "/placeholder.svg"}
           alt=""
           fill
           sizes="64px"
@@ -242,9 +273,9 @@ function PostTile({
       </div>
 
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-bold text-card-foreground">{post.username}</p>
+        <p className="truncate text-sm font-bold text-card-foreground">{username}</p>
         <p className="mt-0.5 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
-          {post.caption}
+          {caption}
         </p>
         <span
           className={[
@@ -258,15 +289,17 @@ function PostTile({
         >
           {state === "completed" ? (
             <>
-              <Check className="size-3" aria-hidden="true" /> 已完成
+              <Check className="size-3" aria-hidden="true" />
+              {language === "en" ? "Completed" : "已完成"}
             </>
           ) : state === "current" ? (
             <>
-              開始分析 <ChevronRight className="size-3" aria-hidden="true" />
+              {language === "en" ? "Start Analyzing" : "開始分析"} <ChevronRight className="size-3" aria-hidden="true" />
             </>
           ) : (
             <>
-              <Lock className="size-3" aria-hidden="true" /> 未解鎖
+              <Lock className="size-3" aria-hidden="true" />
+              {language === "en" ? "Locked" : "未解鎖"}
             </>
           )}
         </span>

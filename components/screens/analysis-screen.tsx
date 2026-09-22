@@ -268,6 +268,7 @@ export function AnalysisScreen({ post, existing, onComplete, onExit, isStructure
         onSelect={handleJudgment}
         onContinue={onComplete}
         saving={pending}
+        language={language}
       />
     )
   }
@@ -297,7 +298,7 @@ export function AnalysisScreen({ post, existing, onComplete, onExit, isStructure
       <div className="mx-auto flex max-w-5xl flex-col gap-5 px-4 py-5 lg:flex-row lg:items-start">
         {/* Left: Instagram post (fixed on desktop) */}
         <div className="lg:sticky lg:top-20 lg:w-2/5 lg:shrink-0">
-          <InstagramPost post={post} />
+          <InstagramPost post={post} language={language} />
         </div>
 
         {/* Right: chat */}
