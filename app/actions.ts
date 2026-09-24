@@ -10,7 +10,7 @@ import {
   type Judgment,
   type Submission,
 } from "@/lib/db"
-import { isMeaninglessResponse, isConfusedResponse } from "@/lib/chat-helpers"
+import { isMeaninglessResponse, isConfusedResponse, isGibberishResponse } from "@/lib/chat-helpers"
 import { getPostById, getPostsByWeek, type Post } from "@/lib/study-data"
 
 const COOKIE = "mlt_student"
@@ -136,13 +136,13 @@ function buildSystemInstruction(
   ]
     .filter(Boolean)
     .join("\n")
-  const postSpecificGuidance = stagePrompt && stageIndex !== 3
+  const scaffoldLevel = week <= 2 ? "high" : "low"
+  const postSpecificGuidance = stagePrompt && stageIndex !== 3 && scaffoldLevel === "high"
     ? language === "en"
       ? `For this post, please specifically guide the student to notice: ${stagePrompt}`
       : `針對這則貼文，請特別引導學生注意：${stagePrompt}`
     : ""
   const isFirstRound = chatHistory.length === 0
-  const scaffoldLevel = week <= 2 ? "high" : "low"
   const scaffoldInstruction = scaffoldLevel === "high"
     ? language === "en"
       ? "Provide a specific direction for guidance, such as prompting the student to notice the source, title wording, or numbers."
@@ -241,7 +241,7 @@ export async function getAiReply(
     return "[NEXT_STAGE]"
   }
 
-  const isMeaningless = latestUserInput !== undefined && isMeaninglessResponse(latestUserInput)
+  const isMeaningless = latestUserInput !== undefined && (isMeaninglessResponse(latestUserInput) || isGibberishResponse(latestUserInput))
   const isConfused = latestUserInput !== undefined && !isMeaningless && isConfusedResponse(latestUserInput)
   const systemInstruction = buildSystemInstruction(
     stageIndex,

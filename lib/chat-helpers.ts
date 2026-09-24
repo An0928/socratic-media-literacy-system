@@ -28,3 +28,18 @@ export function isConfusedResponse(text: string): boolean {
     return confusedPatterns.some((pattern) => trimmed.includes(pattern))
         || confusedPatternsEn.some((pattern) => normalized.includes(pattern))
 }
+
+export function isGibberishResponse(text: string): boolean {
+    const trimmed = text.trim()
+    if (trimmed.length === 0) return false
+
+    const meaningfulCharPattern = /[\u4e00-\u9fa5a-zA-Z]/g
+    const meaningfulChars = trimmed.match(meaningfulCharPattern) ?? []
+
+    if (meaningfulChars.length === 0) return true
+
+    const ratio = meaningfulChars.length / trimmed.length
+    if (ratio < 0.3) return true
+
+    return false
+}
