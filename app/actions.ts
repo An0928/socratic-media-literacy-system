@@ -407,11 +407,12 @@ export async function submitJudgment(
   postId: string,
   judgment: Judgment,
   chatLog: string,
+  startedAt?: string | null,
 ): Promise<{ ok: boolean }> {
   const store = await cookies()
   const studentId = store.get(COOKIE)?.value
   if (!studentId) return { ok: false }
-  await saveSubmission(studentId, postId, judgment, chatLog)
+  await saveSubmission(studentId, postId, judgment, chatLog, startedAt ?? null)
   revalidatePath("/")
   return { ok: true }
 }

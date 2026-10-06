@@ -44,6 +44,7 @@ export function AnalysisScreen({ post, existing, onComplete, onExit, isStructure
   const [stageIndex, setStageIndex] = useState(0)
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [stageMessages, setStageMessages] = useState<ChatMessage[]>([])
+  const [startedAt, setStartedAt] = useState<string | null>(null)
   const [previousStageLastAnswer, setPreviousStageLastAnswer] = useState<string | undefined>(undefined)
   const [input, setInput] = useState("")
   const [chatDone, setChatDone] = useState(false)
@@ -70,6 +71,7 @@ export function AnalysisScreen({ post, existing, onComplete, onExit, isStructure
     setStageIndex(0)
     setMessages([{ role: "ai", text: getIntroMessage(language) }])
     setStageMessages([])
+    setStartedAt(null)
     setInput("")
     setChatDone(false)
     setShowJudgment(false)
@@ -130,6 +132,9 @@ export function AnalysisScreen({ post, existing, onComplete, onExit, isStructure
             return [...prev, { role: "ai", text: cleanedReply, stage: stageIndex }]
           })
           setStageMessages((prev) => [...prev, { role: "ai", text: cleanedReply, stage: stageIndex }])
+          if (!ignore && stageIndex === 0 && startedAt === null) {
+            setStartedAt(new Date().toISOString())
+          }
           setPreviousStageLastAnswer(undefined)
         }
       } catch {
@@ -156,7 +161,7 @@ export function AnalysisScreen({ post, existing, onComplete, onExit, isStructure
     return () => {
       ignore = true
     }
-  }, [chatDone, introConfirmed, isStructured, language, post.id, stageIndex])
+  }, [chatDone, introConfirmed, isStructured, language, post.id, stageIndex, startedAt])
 
   // The active stage for the progress bar: number of completed stages.
   const activeStage = chatDone ? STAGE_LABELS.length : stageIndex
@@ -258,7 +263,7 @@ export function AnalysisScreen({ post, existing, onComplete, onExit, isStructure
     }
 
     startTransition(async () => {
-      await submitJudgment(post.id, judgment, buildChatLog())
+      await submitJudgment(post.id, judgment, buildChatLog(), startedAt)
     })
   }
 

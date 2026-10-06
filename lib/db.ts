@@ -19,6 +19,7 @@ export type Submission = {
   postId: string
   judgment: Judgment
   chatLog: string
+  startedAt: string | null
   completedAt: string
 }
 
@@ -65,10 +66,17 @@ async function ensureSchema(): Promise<void> {
           post_id VARCHAR(32) NOT NULL,
           judgment VARCHAR(16) NOT NULL,
           chat_log MEDIUMTEXT,
+          started_at VARCHAR(32) NULL,
           completed_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
           UNIQUE KEY uniq_student_post (student_id, post_id)
         )
       `)
+      const [columns] = await db.query<mysql.RowDataPacket[]>(
+        "SHOW COLUMNS FROM submissions LIKE 'started_at'",
+      )
+      if (columns.length === 0) {
+        await db.query("ALTER TABLE submissions ADD COLUMN started_at VARCHAR(32) NULL")
+      }
     })().catch((err) => {
       // Reset so a later request can retry the schema setup.
       schemaReady = null
@@ -157,13 +165,14 @@ export async function getSubmissions(studentId: string): Promise<Submission[]> {
     await ensureSchema()
     const db = getPool()
     const [rows] = await db.query<mysql.RowDataPacket[]>(
-      "SELECT post_id, judgment, chat_log, completed_at FROM submissions WHERE student_id = ? ORDER BY completed_at ASC",
+      "SELECT post_id, judgment, chat_log, started_at, completed_at FROM submissions WHERE student_id = ? ORDER BY completed_at ASC",
       [studentId],
     )
     return rows.map((r) => ({
       postId: r.post_id as string,
       judgment: r.judgment as Judgment,
       chatLog: (r.chat_log as string) ?? "",
+      startedAt: (r.started_at as string | null) ?? null,
       completedAt: new Date(r.completed_at).toISOString(),
     }))
   }
@@ -176,15 +185,16 @@ export async function saveSubmission(
   postId: string,
   judgment: Judgment,
   chatLog: string,
+  startedAt: string | null,
 ): Promise<void> {
   if (useMysql) {
     await ensureSchema()
     const db = getPool()
     await db.query(
-      `INSERT INTO submissions (student_id, post_id, judgment, chat_log)
-       VALUES (?, ?, ?, ?)
-       ON DUPLICATE KEY UPDATE judgment = VALUES(judgment), chat_log = VALUES(chat_log), completed_at = CURRENT_TIMESTAMP`,
-      [studentId, postId, judgment, chatLog],
+      `INSERT INTO submissions (student_id, post_id, judgment, chat_log, started_at)
+       VALUES (?, ?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE judgment = VALUES(judgment), chat_log = VALUES(chat_log), started_at = VALUES(started_at), completed_at = CURRENT_TIMESTAMP`,
+      [studentId, postId, judgment, chatLog, startedAt],
     )
     return
   }
@@ -193,6 +203,7 @@ export async function saveSubmission(
     postId,
     judgment,
     chatLog,
+    startedAt,
     completedAt: new Date().toISOString(),
   })
 }
