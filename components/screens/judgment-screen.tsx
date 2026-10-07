@@ -16,26 +16,26 @@ type Props = {
 function getOptions(language: "zh" | "en") {
   const labels = language === "en"
     ? {
-      real: "I think this is true",
-      fake: "I think this is false or misleading",
-      unsure: "I can't tell",
+      credible: "Credible",
+      misleading: "Misleading",
+      unsure: "Not sure",
     }
     : {
-      real: "我認為這是真實的",
-      fake: "我認為這是假的或誤導性的",
-      unsure: "我無法判斷",
+      credible: "可信",
+      misleading: "誤導",
+      unsure: "不確定",
     }
 
   return [
     {
-      value: "real" as Judgment,
-      label: labels.real,
+      value: "credible" as Judgment,
+      label: labels.credible,
       icon: Check,
       classes: "border-success bg-success/10 text-success hover:bg-success/15",
     },
     {
-      value: "fake" as Judgment,
-      label: labels.fake,
+      value: "misleading" as Judgment,
+      label: labels.misleading,
       icon: X,
       classes: "border-destructive bg-destructive/10 text-destructive hover:bg-destructive/15",
     },
@@ -60,7 +60,7 @@ export function JudgmentScreen({ onSelect, onContinue, saving, isTrue, language 
     setPhase("feedback")
   }
 
-  const isCorrect = selected === "real" ? isTrue : selected === "fake" ? !isTrue : null
+  const isCorrect = selected === "credible" ? isTrue : selected === "misleading" ? !isTrue : null
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-background px-4 py-10">
@@ -116,8 +116,8 @@ export function JudgmentScreen({ onSelect, onContinue, saving, isTrue, language 
                   : isCorrect === false
                     ? language === "en" ? "Your judgment was incorrect." : "你的判斷不正確。"
                     : language === "en"
-                      ? `This post was actually ${isTrue ? "true" : "false"}.`
-                      : `這則貼文其實是「${isTrue ? "真的" : "假的"}」。`}
+                      ? `This post was actually ${isTrue ? "credible" : "misleading"}.`
+                      : `這則貼文其實是「${isTrue ? "可信的" : "誤導的"}」。`}
               </h2>
               <Button
                 onClick={() => setPhase("complete")}
@@ -140,7 +140,7 @@ export function JudgmentScreen({ onSelect, onContinue, saving, isTrue, language 
               <p className="mt-2 text-pretty text-sm leading-relaxed text-muted-foreground">
                 {language === "en"
                   ? "Thank you for thinking this through. Each practice helps you get better at spotting misinformation online."
-                  : "謝謝你認真思考。每一次練習，都讓你更能看穿網路資訊的真假。"}
+                  : "謝謝你認真思考。每一次練習，都讓你更能判斷網路資訊是否可信。"}
               </p>
               <Button
                 onClick={onContinue}

@@ -29,9 +29,37 @@ export function isConfusedResponse(text: string): boolean {
         || confusedPatternsEn.some((pattern) => normalized.includes(pattern))
 }
 
+const KEYBOARD_ROWS = ["qwertyuiop", "asdfghjkl", "zxcvbnm"]
+
+function hasAdjacentKeyboardRun(text: string): boolean {
+    const lower = text.toLowerCase()
+    let run = 1
+    for (let i = 1; i < lower.length; i++) {
+        const a = lower[i - 1]
+        const b = lower[i]
+        let adjacent = false
+        for (const row of KEYBOARD_ROWS) {
+            const ia = row.indexOf(a)
+            const ib = row.indexOf(b)
+            if (ia !== -1 && ib !== -1 && Math.abs(ia - ib) === 1) {
+                adjacent = true
+                break
+            }
+        }
+        run = adjacent ? run + 1 : 1
+        if (run >= 4) return true
+    }
+    return false
+}
+
 export function isGibberishResponse(text: string): boolean {
     const trimmed = text.trim()
     if (trimmed.length === 0) return false
+    if (trimmed.includes("\uFFFD")) return true
+    const body = trimmed.replace(/\s+/g, "")
+    if (/^(.{1,2})\1{2,}$/.test(body)) return true
+    const hasChinese = /[\u4e00-\u9fa5]/.test(trimmed)
+    if (!hasChinese && hasAdjacentKeyboardRun(trimmed)) return true
 
     const meaningfulCharPattern = /[\u4e00-\u9fa5a-zA-Z]/g
     const meaningfulChars = trimmed.match(meaningfulCharPattern) ?? []

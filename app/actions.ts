@@ -130,8 +130,8 @@ function buildSystemInstruction(
     stageInstructionBase,
     stageIndex === 0
       ? language === "en"
-        ? "If the student immediately makes a true-or-false judgment, do not reject it. Guide the student to explain why they think that way and use this to enter the observation stage."
-        : "如果學生一開始就直接做出真假判斷，不要否定他，而是引導他說明「為什麼」這樣覺得，藉此進入觀察階段。"
+        ? "If the student immediately makes a credible-or-misleading judgment, do not reject it. Guide the student to explain why they think that way and use this to enter the observation stage."
+        : "如果學生一開始就直接做出可信或誤導的判斷，不要否定他，而是引導他說明「為什麼」這樣覺得，藉此進入觀察階段。"
       : "",
     ...(language === "en" ? POST_BOUND_INSTRUCTION_EN : POST_BOUND_INSTRUCTION),
     imageBoundaryInstruction,
@@ -277,6 +277,10 @@ export async function getAiReply(
 
   if (!cleanedText) {
     return "請再說明一下你的想法。"
+  }
+
+  if (isMeaningless || isConfused) {
+    return cleanedText.replace(/\[NEXT_STAGE\]/gi, "").trim() || "請再說明一下你的想法。"
   }
 
   return cleanedText

@@ -15,12 +15,12 @@ import { Input } from "@/components/ui/input"
 function getIntroMessage(language: "zh" | "en"): string {
   if (language === "en") {
     return `Next, I'll ask you a few questions about this post. Please answer based on the text and image content.
-We'll discuss and think about this post together, and at the end you'll decide for yourself whether it's true, false, or unsure. What matters is your thinking process, not rushing to find the "correct answer."
+We'll discuss and think about this post together, and at the end you'll decide for yourself whether it's credible, misleading, or unsure. What matters is your thinking process, not rushing to find the "correct answer."
 
 Are you ready?`
   }
   return `接下來我會針對這則貼文問幾個問題，請根據貼文的文字內容和圖片畫面來回答。
-我們會一起討論、思考這則貼文，最後由你自己判斷這則貼文是真的、假的，還是不確定。重要的是你的思考過程，不是急著找到「正確答案」。
+我們會一起討論、思考這則貼文，最後由你自己判斷這則貼文是可信、誤導，還是不確定。重要的是你的思考過程，不是急著找到「正確答案」。
 
 準備好了嗎？`
 }
@@ -212,7 +212,7 @@ export function AnalysisScreen({ post, existing, onComplete, onExit, isStructure
         turnCount,
         language,
       )
-      const shouldAdvance = /\[NEXT_STAGE\]/i.test(aiReply)
+      const shouldAdvance = !shouldSkipTurnIncrement && /\[NEXT_STAGE\]/i.test(aiReply)
       const cleanedReply = aiReply.replace(/\[NEXT_STAGE\]/gi, "").trim()
 
       setMessages((prev) => {

@@ -13,7 +13,7 @@ import mysql from "mysql2/promise"
  * back to an in-memory store so the full flow can still be demonstrated.
  */
 
-export type Judgment = "real" | "fake" | "unsure"
+export type Judgment = "credible" | "misleading" | "unsure"
 
 export type Submission = {
   postId: string
