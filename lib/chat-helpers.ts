@@ -64,6 +64,9 @@ export function isGibberishResponse(text: string): boolean {
     const meaningfulCharPattern = /[\u4e00-\u9fa5a-zA-Z]/g
     const meaningfulChars = trimmed.match(meaningfulCharPattern) ?? []
 
+    const core = trimmed.toLowerCase().replace(/[^a-z]/g, "")
+    if (core.length >= 4 && !/[aeiou]/.test(core)) return true
+
     if (meaningfulChars.length === 0) return true
 
     const ratio = meaningfulChars.length / trimmed.length

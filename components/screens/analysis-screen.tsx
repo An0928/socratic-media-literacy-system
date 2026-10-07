@@ -183,8 +183,8 @@ export function AnalysisScreen({ post, existing, onComplete, onExit, isStructure
     const nextStageMessages = [...stageMessages, userMsg]
     const isMeaningless = isMeaninglessResponse(text) || isGibberishResponse(text)
     const isConfused = !isMeaningless && isConfusedResponse(text)
-    const shouldSkipTurnIncrement = isMeaningless || isConfused
-    const turnCount = isStructured && !shouldSkipTurnIncrement
+    const heuristicSkip = isMeaningless || isConfused
+    const turnCount = isStructured && !heuristicSkip
       ? stageMessages.filter((message) => message.role === "ai").length + 1
       : stageMessages.filter((message) => message.role === "ai").length
 
@@ -212,8 +212,10 @@ export function AnalysisScreen({ post, existing, onComplete, onExit, isStructure
         turnCount,
         language,
       )
+      const modelNoCount = /\[NO_COUNT\]/i.test(aiReply)
+      const shouldSkipTurnIncrement = heuristicSkip || modelNoCount
       const shouldAdvance = !shouldSkipTurnIncrement && /\[NEXT_STAGE\]/i.test(aiReply)
-      const cleanedReply = aiReply.replace(/\[NEXT_STAGE\]/gi, "").trim()
+      const cleanedReply = aiReply.replace(/\[NEXT_STAGE\]/gi, "").replace(/\[NO_COUNT\]/gi, "").trim()
 
       setMessages((prev) => {
         const withoutLoading = prev.filter((message) => !(message.role === "ai" && message.text === "..."))

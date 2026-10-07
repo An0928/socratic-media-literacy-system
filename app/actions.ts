@@ -121,6 +121,9 @@ function buildSystemInstruction(
       ? "The student's last reply shows that they did not understand your previous question. Do not treat it as completing a turn or switch to a new question or observation angle. Ask the same question again in simpler, more conversational language, and do not add [NEXT_STAGE] this turn."
       : "學生剛才的回覆顯示他聽不懂你上一個問題（例如說『不懂』『聽不懂』），請不要視為完成一輪，也不要換成新的問題或新的觀察角度。請把你剛剛問過的同一個問題，用更簡單、更口語、更貼近日常對話的方式重新講一次，讓高中生更容易理解，並且這一輪絕對不要加 [NEXT_STAGE]。"
     : ""
+  const noCountInstruction = language === "en"
+    ? "If the student's input is gibberish or meaningless (e.g. sdefsf, 51541), start your reply with the marker [NO_COUNT], never add [NEXT_STAGE] this turn, and re-ask from a more specific angle."
+    : "若學生剛才的輸入是亂碼、無意義的字元或鍵盤/數字亂按（例如 sdefsf、51541），請在回覆最前面加上標記 [NO_COUNT]；這一輪絕對不要加 [NEXT_STAGE]，並換一個更具體的角度重新問同一個問題。"
   const bridgeInstruction = previousStageLastAnswer
     ? language === "en"
       ? `This is the first question of a new stage. The student's last answer was: "${previousStageLastAnswer}". If appropriate, naturally incorporate it into one opening question for the new stage. If it is not relevant, ask the new stage's question directly. The whole reply must contain only one question.`
@@ -174,6 +177,7 @@ function buildSystemInstruction(
       postSpecificGuidance,
       roundInstruction,
       scaffoldInstruction,
+      noCountInstruction,
       language === "en" ? "Reply directly without showing your thinking process." : "請直接回覆，不需要顯示思考過程。",
       language === "en" ? "You must reply in English." : "請務必使用繁體中文回覆。",
       language === "en" ? "Use language that a high school student can understand and avoid academic terms. Ask only one question each time, and keep the sentence within two lines." : "請用高中生能理解的語言回覆，避免學術用語。每次只問一個問題，句子不超過兩行。",
@@ -207,6 +211,7 @@ function buildSystemInstruction(
     language === "en" ? "Reply directly without showing your thinking process." : "請直接回覆，不需要顯示思考過程。",
     language === "en" ? "You must reply in English." : "請務必使用繁體中文回覆。",
     language === "en" ? "Use language a high school student can understand. Keep the sentence within two lines and ask only one question each time." : "請用高中生能理解的語言回覆，句子不超過兩行，每次只問一個問題。",
+    noCountInstruction,
     language === "en" ? "When the student gives a substantive answer, briefly affirm the main point before asking the next question. Vary your wording and respond naturally, like a friend discussing the topic." : "當學生給出有實質內容的回答時，先用一句話簡短肯定重點，再提出下一個問題，回應方式要有變化、像朋友聊天一樣自然，不要每次都用同一種句型開頭。",
     language === "en" ? "Respond like a friend discussing the topic, not like an exam or evaluation. You may use relatable situations so the question feels concrete." : "回應的語氣要像朋友在討論，不要像在考試或審核學生。可以適度用貼近生活的情境提問，例如『如果你朋友傳這篇給你，你會怎麼回她？』，讓問題更有畫面感，不要每一句都停留在抽象的文本分析。",
     language === "en" ? "Guide the student only with questions. Never give the answer or conclusion directly." : "你只能用問句進行引導，絕對不要直接給出答案或結論。",
@@ -231,17 +236,6 @@ export async function getAiReply(
   const completionMessage = language === "en"
     ? "Thank you for participating in this discussion. Now it's your turn to make your judgment. [NEXT_STAGE]"
     : "感謝您這次參與討論，換您做出您的答案。[NEXT_STAGE]"
-
-  if (!isStructured) {
-    if (turnCount >= 9) {
-      return completionMessage
-    }
-  } else if (turnCount >= 3) {
-    if (stageIndex === 3) {
-      return completionMessage
-    }
-    return "[NEXT_STAGE]"
-  }
 
   const isMeaningless = latestUserInput !== undefined && (isMeaninglessResponse(latestUserInput) || isGibberishResponse(latestUserInput))
   const isConfused = latestUserInput !== undefined && !isMeaningless && isConfusedResponse(latestUserInput)
@@ -275,15 +269,20 @@ export async function getAiReply(
     .replace(/<think>[\s\S]*?<\/think>/gi, "")
     .trim()
 
-  if (!cleanedText) {
-    return "請再說明一下你的想法。"
+  const hasNoCount = /\[NO_COUNT\]/i.test(cleanedText)
+  if (isMeaningless || isConfused || hasNoCount) {
+    return cleanedText.replace(/\[NO_COUNT\]/gi, "").replace(/\[NEXT_STAGE\]/gi, "").trim()
+      || "請再說明一下你的想法。"
   }
 
-  if (isMeaningless || isConfused) {
-    return cleanedText.replace(/\[NEXT_STAGE\]/gi, "").trim() || "請再說明一下你的想法。"
+  if (!isStructured && turnCount >= 9) {
+    return completionMessage
+  }
+  if (isStructured && turnCount >= 3) {
+    return stageIndex === 3 ? completionMessage : "[NEXT_STAGE]"
   }
 
-  return cleanedText
+  return cleanedText.replace(/\[NO_COUNT\]/gi, "").trim() || "請再說明一下你的想法。"
 }
 
 export type StudentState = {
