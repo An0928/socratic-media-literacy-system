@@ -142,10 +142,19 @@ function buildSystemInstruction(
     .filter(Boolean)
     .join("\n")
   const scaffoldLevel = week <= 2 ? "high" : "low"
-  const postSpecificGuidance = stagePrompt && stageIndex !== 3 && scaffoldLevel === "high"
+  const postSpecificGuidance = stagePrompt && stageIndex !== 3
     ? language === "en"
-      ? `For this post, please specifically guide the student to notice: ${stagePrompt}`
-      : `針對這則貼文，請特別引導學生注意：${stagePrompt}`
+      ? scaffoldLevel === "high"
+        ? `For this post, please specifically guide the student to notice: ${stagePrompt}`
+        : `This post's discussion direction is: ${stagePrompt}. Turn it into one open-ended question and do not point out specific clues or answers directly.`
+      : scaffoldLevel === "high"
+        ? `針對這則貼文，請特別引導學生注意：${stagePrompt}`
+        : `這則貼文的討論方向是：${stagePrompt}。請把它轉化成單一開放式問句來引導，不要直接點出具體線索或答案。`
+    : ""
+  const postPromptNote = postSpecificGuidance
+    ? language === "en"
+      ? "The prompt above is only a topic direction. Do not copy its questions verbatim; turn it into a single question and ask only one question in this reply."
+      : "上面的貼文提示只是主題方向。不要照抄其中的問句，請轉化成單一問句，這次回覆只問一個問題。"
     : ""
   const isFirstRound = chatHistory.length === 0
   const scaffoldInstruction = scaffoldLevel === "high"
@@ -175,6 +184,7 @@ function buildSystemInstruction(
       language === "en" ? FINAL_REPLY_INSTRUCTION_EN : FINAL_REPLY_INSTRUCTION,
       stageInstruction,
       postSpecificGuidance,
+      postPromptNote,
       roundInstruction,
       scaffoldInstruction,
       noCountInstruction,
@@ -203,6 +213,8 @@ function buildSystemInstruction(
     language === "en" ? FINAL_REPLY_INSTRUCTION_EN : FINAL_REPLY_INSTRUCTION,
     language === "en" ? "You are a media literacy guide who asks the student open-ended questions about this post." : "你是一個媒體素養引導助手，針對這則貼文對學生提出開放式問題。",
     imageBoundaryInstruction,
+    postSpecificGuidance,
+    postPromptNote,
     scaffoldInstruction,
     language === "en" ? "Follow up based on the student's answer; the questions do not need to follow a particular teaching sequence or stage." : "根據學生的回答進行追問，提問不需遵循任何特定教學順序或階段。",
     language === "en" ? "If the student gives a non-substantive answer, do not treat it as completing a turn. Guide them again from a different angle and ask another related question." : "若學生回答「不知道」「沒有」「不清楚」等無實質內容的回答，不要視為完成一輪，請換一個角度重新引導，再問一次相關問題。",
