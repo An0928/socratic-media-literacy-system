@@ -20,11 +20,13 @@ const POST_BOUND_INSTRUCTION = [
   "重要規則：你只能引導學生觀察『這張貼文或貼文圖片裡實際看得到的內容』，例如帳號名稱、貼文文字、圖片內容。絕對禁止要求學生去查看『過去貼文』『歷史留言』『其他評價』『網路搜尋』『正式新聞報導』『其他管道』等貼文或貼文圖片以外不存在的資訊，也不能要求學生「比較」這則貼文和任何圖片以外不存在的東西（例如『跟正式新聞報導比起來少了什麼』），因為學生只能看到這一張貼文的圖片，沒有其他資料來源。如果你想引導學生思考來源可信度，只能基於『這張圖和文案上寫了什麼、沒寫什麼』來提問。",
   '當你要引用或轉述貼文裡的文字時，必須精確依照貼文原文的用詞，不能改寫、簡化或自行組合成新的句子。如果不確定貼文裡是否真的有某個說法，請不要在問題中假設它存在，改用更概括的方式提問（例如直接問「貼文裡有沒有提到讓你覺得可信或不可信的說法」，而不是引用一句你不確定是否存在的原文）。',
   '每個問題只能圍繞一個明確的重點，不要把『如果...』的假設句和另一個不相關的追問綁在同一句話裡。問句要讓高中生一次讀完就能理解在問什麼，不要用抽象的形容詞（例如『太滿』『太快』）來描述問題，改用具體可觀察的描述（例如『用了很多驚嘆號』『把最嚴重的地方放在最前面』）。',
+  "如果貼文裡引用了一個網路傳言或說法（例如用引號標示、或是明顯在轉述「大家都在說」的內容），但貼文後面緊接著提出了不同的看法或限制條件，請不要把這個被引用的傳言，當作貼文本身要主張的結論來提問。你的提問應該先確認學生有沒有注意到貼文完整的論述脈絡（包含後面的限制或平衡說法），而不是只聚焦在被引用的那句話本身。",
 ]
 const POST_BOUND_INSTRUCTION_EN = [
   "Important rule: Only guide the student to observe what can actually be seen in this post or its image, such as the account name, post text, or image content. Never ask the student to check past posts, historical comments, other reviews, web searches, formal news reports, or any other information that does not exist in the post or image. Do not ask the student to compare this post with anything unavailable in the image. If you want the student to think about source credibility, ask only about what the image and caption do or do not say.",
   "When quoting or paraphrasing text from the post, follow the exact wording of the original post. Do not rewrite, simplify, or combine the original wording into a new sentence. If you are unsure whether the post really contains a claim, do not assume it in a question. Ask more generally instead.",
   "Each question must focus on one clear point. Do not combine a hypothetical sentence beginning with 'if...' with an unrelated follow-up question. Make the question easy for a high school student to understand in one reading. Use concrete, observable descriptions instead of abstract descriptions.",
+  "If the post quotes a rumor or claim (e.g. marked with quotation marks, or clearly referencing what 'people say'), but the post goes on to present a different view or qualification, do not treat the quoted rumor itself as the post's own conclusion when asking questions. Your questions should first check whether the student has noticed the post's full argument (including the later qualification or balancing statement), rather than focusing only on the quoted sentence.",
 ]
 const FINAL_REPLY_INSTRUCTION = "你必須直接輸出給學生看的最終回覆，絕對不要輸出思考過程、自我對話、分析步驟或任何 <think> 標籤內容。"
 const FINAL_REPLY_INSTRUCTION_EN = "You must output only the final reply intended for the student. Never output your thinking process, self-dialogue, analysis steps, or any <think> tag content."

@@ -180,6 +180,13 @@ export async function getSubmissions(studentId: string): Promise<Submission[]> {
   return map ? Array.from(map.values()) : []
 }
 
+function toMysqlDatetime(isoString: string | null | undefined): string | null {
+  if (!isoString) return null
+  const date = new Date(isoString)
+  if (isNaN(date.getTime())) return null
+  return date.toISOString().slice(0, 19).replace("T", " ")
+}
+
 export async function saveSubmission(
   studentId: string,
   postId: string,
@@ -194,7 +201,7 @@ export async function saveSubmission(
       `INSERT INTO submissions (student_id, post_id, judgment, chat_log, started_at)
        VALUES (?, ?, ?, ?, ?)
        ON DUPLICATE KEY UPDATE judgment = VALUES(judgment), chat_log = VALUES(chat_log), started_at = VALUES(started_at), completed_at = CURRENT_TIMESTAMP`,
-      [studentId, postId, judgment, chatLog, startedAt],
+      [studentId, postId, judgment, chatLog, toMysqlDatetime(startedAt)],
     )
     return
   }
