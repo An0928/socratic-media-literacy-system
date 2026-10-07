@@ -56,6 +56,7 @@ export function AnalysisScreen({ post, existing, onComplete, onExit, isStructure
 
   const scrollRef = useRef<HTMLDivElement>(null)
   const initializedStageRef = useRef<string | null>(null)
+  const lastTurnNonSubstantiveRef = useRef(false)
   const postRef = useRef(post)
   const introShownRef = useRef<string | null>(null)
 
@@ -78,6 +79,7 @@ export function AnalysisScreen({ post, existing, onComplete, onExit, isStructure
     setIntroConfirmed(false)
     setPreviousStageLastAnswer(undefined)
     initializedStageRef.current = null
+    lastTurnNonSubstantiveRef.current = false
     introShownRef.current = post.id
   }, [language, post.id])
 
@@ -120,7 +122,7 @@ export function AnalysisScreen({ post, existing, onComplete, onExit, isStructure
           language,
           previousStageLastAnswer,
         )
-        const cleanedReply = aiReply.replace(/\[NEXT_STAGE\]/gi, "").trim()
+        const cleanedReply = aiReply.replace(/\[NEXT_STAGE\]/gi, "").replace(/\[NO_COUNT\]/gi, "").trim()
 
         if (!ignore) {
           setMessages((prev) => {
@@ -184,6 +186,8 @@ export function AnalysisScreen({ post, existing, onComplete, onExit, isStructure
     const isMeaningless = isMeaninglessResponse(text) || isGibberishResponse(text)
     const isConfused = !isMeaningless && isConfusedResponse(text)
     const heuristicSkip = isMeaningless || isConfused
+    const prevTurnNonSubstantive = lastTurnNonSubstantiveRef.current
+    const canAdvance = !heuristicSkip && !prevTurnNonSubstantive
     const turnCount = isStructured && !heuristicSkip
       ? stageMessages.filter((message) => message.role === "ai").length + 1
       : stageMessages.filter((message) => message.role === "ai").length
@@ -211,10 +215,13 @@ export function AnalysisScreen({ post, existing, onComplete, onExit, isStructure
         text,
         turnCount,
         language,
+        undefined,
+        canAdvance,
       )
       const modelNoCount = /\[NO_COUNT\]/i.test(aiReply)
       const shouldSkipTurnIncrement = heuristicSkip || modelNoCount
-      const shouldAdvance = !shouldSkipTurnIncrement && /\[NEXT_STAGE\]/i.test(aiReply)
+      const shouldAdvance = canAdvance && !shouldSkipTurnIncrement && /\[NEXT_STAGE\]/i.test(aiReply)
+      lastTurnNonSubstantiveRef.current = shouldSkipTurnIncrement
       const cleanedReply = aiReply.replace(/\[NEXT_STAGE\]/gi, "").replace(/\[NO_COUNT\]/gi, "").trim()
 
       setMessages((prev) => {

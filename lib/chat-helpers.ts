@@ -60,6 +60,8 @@ export function isGibberishResponse(text: string): boolean {
     if (/^(.{1,2})\1{2,}$/.test(body)) return true
     const hasChinese = /[\u4e00-\u9fa5]/.test(trimmed)
     if (!hasChinese && hasAdjacentKeyboardRun(trimmed)) return true
+    // 英數混雜、無空格、無中文（例如 wfe65sd1f63、5wde1fsz65h、sr5g6rfgaz6frgz）視為亂碼
+    if (!hasChinese && /[0-9]/.test(trimmed) && !/\s/.test(trimmed)) return true
 
     const meaningfulCharPattern = /[\u4e00-\u9fa5a-zA-Z]/g
     const meaningfulChars = trimmed.match(meaningfulCharPattern) ?? []

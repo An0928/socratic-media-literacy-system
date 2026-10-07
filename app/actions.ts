@@ -122,8 +122,8 @@ function buildSystemInstruction(
       : "學生剛才的回覆顯示他聽不懂你上一個問題（例如說『不懂』『聽不懂』），請不要視為完成一輪，也不要換成新的問題或新的觀察角度。請把你剛剛問過的同一個問題，用更簡單、更口語、更貼近日常對話的方式重新講一次，讓高中生更容易理解，並且這一輪絕對不要加 [NEXT_STAGE]。"
     : ""
   const noCountInstruction = language === "en"
-    ? "If the student's input is gibberish or meaningless (e.g. sdefsf, 51541), start your reply with the marker [NO_COUNT], never add [NEXT_STAGE] this turn, and re-ask from a more specific angle."
-    : "若學生剛才的輸入是亂碼、無意義的字元或鍵盤/數字亂按（例如 sdefsf、51541），請在回覆最前面加上標記 [NO_COUNT]；這一輪絕對不要加 [NEXT_STAGE]，並換一個更具體的角度重新問同一個問題。"
+    ? "If the student's input is gibberish or meaningless (e.g. sdefsf, 51541, fwesef, wfe65sd1f63, sr5g6rfgaz6frgz), start your reply with the marker [NO_COUNT], never add [NEXT_STAGE] this turn, and re-ask from a more specific angle. Even if the student types gibberish for several turns in a row and the conversation makes no progress, stay in the current stage and re-ask from a more specific angle. Never add [NEXT_STAGE] just to move the conversation forward; only add it when the student has already given at least one substantive answer in this stage."
+    : "若學生剛才的輸入是亂碼、無意義的字元或鍵盤/數字亂按（例如 sdefsf、51541、fwesef、wfe65sd1f63、sr5g6rfgaz6frgz），請在回覆最前面加上標記 [NO_COUNT]；這一輪絕對不要加 [NEXT_STAGE]，並換一個更具體的角度重新問同一個問題。就算學生連續好幾輪都輸入亂碼、對話沒有進展，也只能留在目前階段繼續用更具體的角度重新提問，絕對不能為了讓對話往前走而自行加 [NEXT_STAGE]；只有在學生本階段已經給出至少一個實質回答的情況下，才允許加 [NEXT_STAGE]。"
   const bridgeInstruction = previousStageLastAnswer
     ? language === "en"
       ? `This is the first question of a new stage. The student's last answer was: "${previousStageLastAnswer}". If appropriate, naturally incorporate it into one opening question for the new stage. If it is not relevant, ask the new stage's question directly. The whole reply must contain only one question.`
@@ -244,6 +244,7 @@ export async function getAiReply(
   turnCount: number = 0,
   language: "zh" | "en" = "zh",
   previousStageLastAnswer?: string,
+  canAdvance: boolean = true,
 ): Promise<string> {
   const completionMessage = language === "en"
     ? "Thank you for participating in this discussion. Now it's your turn to make your judgment. [NEXT_STAGE]"
@@ -251,7 +252,7 @@ export async function getAiReply(
 
   const isMeaningless = latestUserInput !== undefined && (isMeaninglessResponse(latestUserInput) || isGibberishResponse(latestUserInput))
   const isConfused = latestUserInput !== undefined && !isMeaningless && isConfusedResponse(latestUserInput)
-  const systemInstruction = buildSystemInstruction(
+  const baseInstruction = buildSystemInstruction(
     stageIndex,
     isStructured,
     postCaption,
@@ -264,6 +265,11 @@ export async function getAiReply(
     language,
     previousStageLastAnswer,
   )
+  const systemInstruction = canAdvance
+    ? baseInstruction
+    : baseInstruction + (language === "en"
+        ? "\nThis turn, do not add [NEXT_STAGE] under any circumstances."
+        : "\n這一輪無論如何都不要加 [NEXT_STAGE]。")
 
   let candidateText = ""
   try {
@@ -282,15 +288,15 @@ export async function getAiReply(
     .trim()
 
   const hasNoCount = /\[NO_COUNT\]/i.test(cleanedText)
-  if (isMeaningless || isConfused || hasNoCount) {
-    return cleanedText.replace(/\[NO_COUNT\]/gi, "").replace(/\[NEXT_STAGE\]/gi, "").trim()
+  if (!canAdvance || isMeaningless || isConfused || hasNoCount) {
+    return cleanedText.replace(/\[NEXT_STAGE\]/gi, "").trim()
       || "請再說明一下你的想法。"
   }
 
-  if (!isStructured && turnCount >= 9) {
+  if (canAdvance && !isStructured && turnCount >= 9) {
     return completionMessage
   }
-  if (isStructured && turnCount >= 3) {
+  if (canAdvance && isStructured && turnCount >= 3) {
     return stageIndex === 3 ? completionMessage : "[NEXT_STAGE]"
   }
 
