@@ -8,8 +8,8 @@ import '@fontsource/geist-mono/700.css'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: '媒體素養訓練系統',
-  description: '透過 AI 對話練習，提升你的媒體素養與批判思考能力。',
+  title: '錯誤資訊評估系統',
+  description: '透過 AI 對話練習，培養你評估與辨識錯誤資訊的能力。',
   generator: 'v0.app',
   icons: {
     icon: [

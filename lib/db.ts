@@ -2,7 +2,7 @@ import "server-only"
 import mysql from "mysql2/promise"
 
 /**
- * Storage layer for the media literacy study.
+ * Storage layer for the misinformation evaluation study.
  *
  * In production (e.g. deployed on Railway) set the `DATABASE_URL` environment
  * variable to your MySQL connection string, e.g.

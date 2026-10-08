@@ -90,7 +90,7 @@ export function ProgressScreen({
         <div className="mx-auto flex max-w-2xl items-center justify-between px-4 py-4">
           <div>
             <p className="text-xs font-medium text-muted-foreground">
-              {language === "en" ? "Media Literacy Training System" : "媒體素養訓練系統"}
+              {language === "en" ? "Misinformation Evaluation System" : "錯誤資訊評估系統"}
             </p>
             <p className="text-sm font-bold text-card-foreground">
               {language === "en" ? "Student ID: " : "學號："}{studentId}

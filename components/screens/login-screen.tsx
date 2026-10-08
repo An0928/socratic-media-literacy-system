@@ -45,7 +45,7 @@ export function LoginScreen({ onLoggedIn }: { onLoggedIn: (state: StudentState) 
               </span>
             </div>
             <h1 className="text-pretty text-2xl font-extrabold text-card-foreground">
-              {language === "en" ? "Media Literacy Training System" : "媒體素養訓練系統"}
+              {language === "en" ? "Misinformation Evaluation System" : "錯誤資訊評估系統"}
             </h1>
             <p className="mt-2 text-sm text-muted-foreground">
               {language === "en" ? "Enter your student ID to begin" : "請輸入你的學號以開始"}
@@ -121,8 +121,8 @@ export function LoginScreen({ onLoggedIn }: { onLoggedIn: (state: StudentState) 
 
         <p className="mt-6 text-center text-xs leading-relaxed text-muted-foreground">
           {language === "en"
-            ? "This system is for media literacy research. No password is required."
-            : "本系統為媒體素養研究之用，不需要密碼。"}
+            ? "This system is for misinformation evaluation research. No password is required."
+            : "本系統為錯誤資訊評估研究之用，不需要密碼。"}
           <br />
           {language === "en" ? "Your student ID is used only to track learning progress." : "你的學號僅用於記錄學習進度。"}
         </p>

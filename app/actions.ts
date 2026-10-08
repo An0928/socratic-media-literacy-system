@@ -211,7 +211,7 @@ function buildSystemInstruction(
   return [
     captionContext,
     language === "en" ? FINAL_REPLY_INSTRUCTION_EN : FINAL_REPLY_INSTRUCTION,
-    language === "en" ? "You are a media literacy guide who asks the student open-ended questions about this post." : "你是一個媒體素養引導助手，針對這則貼文對學生提出開放式問題。",
+    language === "en" ? "You are a misinformation evaluation guide who asks the student open-ended questions about this post." : "你是一個錯誤資訊評估引導助手，針對這則貼文對學生提出開放式問題。",
     imageBoundaryInstruction,
     postSpecificGuidance,
     postPromptNote,
