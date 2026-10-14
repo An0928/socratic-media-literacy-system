@@ -268,15 +268,16 @@ export async function getAiReply(
   const systemInstruction = canAdvance
     ? baseInstruction
     : baseInstruction + (language === "en"
-        ? "\nThis turn, do not add [NEXT_STAGE] under any circumstances."
-        : "\n這一輪無論如何都不要加 [NEXT_STAGE]。")
+      ? "\nThis turn, do not add [NEXT_STAGE] under any circumstances."
+      : "\n這一輪無論如何都不要加 [NEXT_STAGE]。")
 
   let candidateText = ""
   try {
     candidateText = await callOpenAI(systemInstruction, chatHistory, latestUserInput, {
       baseUrl: "https://api.openai.com/v1/chat/completions",
       apiKey: process.env.OPENAI_API_KEY || "",
-      model: "gpt-5.4-mini",
+      //model: "gpt-5.4-mini",
+      model: "gpt-4.1-mini"
     })
   } catch (err) {
     console.error("AI provider error:", err)
