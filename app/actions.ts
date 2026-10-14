@@ -281,7 +281,9 @@ export async function getAiReply(
     })
   } catch (err) {
     console.error("AI provider error:", err)
-    return "目前無法取得 AI 回覆，請稍後再試。"
+    return language === "en"
+      ? "AI is unavailable right now. Please try again later."
+      : "目前無法取得 AI 回覆，請稍後再試。"
   }
 
   const cleanedText = candidateText
@@ -291,7 +293,7 @@ export async function getAiReply(
   const hasNoCount = /\[NO_COUNT\]/i.test(cleanedText)
   if (!canAdvance || isMeaningless || isConfused || hasNoCount) {
     return cleanedText.replace(/\[NEXT_STAGE\]/gi, "").trim()
-      || "請再說明一下你的想法。"
+      || (language === "en" ? "Could you share more about your thoughts?" : "請再說明一下你的想法。")
   }
 
   if (canAdvance && !isStructured && turnCount >= 9) {
@@ -301,7 +303,8 @@ export async function getAiReply(
     return stageIndex === 3 ? completionMessage : "[NEXT_STAGE]"
   }
 
-  return cleanedText.replace(/\[NO_COUNT\]/gi, "").trim() || "請再說明一下你的想法。"
+  return cleanedText.replace(/\[NO_COUNT\]/gi, "").trim()
+    || (language === "en" ? "Could you share more about your thoughts?" : "請再說明一下你的想法。")
 }
 
 export type StudentState = {

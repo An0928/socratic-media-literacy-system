@@ -10,7 +10,7 @@ export function isMeaninglessResponse(text: string): boolean {
     const normalized = trimmed.toLowerCase()
     if (trimmed.length <= 2) return true
     return meaninglessPatterns.some((pattern) => trimmed === pattern)
-        || meaninglessPatternsEn.some((pattern) => normalized === pattern)
+        || meaninglessPatternsEn.some((pattern) => normalized === pattern.replace(/\s+/g, ""))
 }
 
 export function isConfusedResponse(text: string): boolean {
@@ -26,7 +26,7 @@ export function isConfusedResponse(text: string): boolean {
     const trimmed = text.trim().replace(/[。！？，、\s]/g, "")
     const normalized = trimmed.toLowerCase()
     return confusedPatterns.some((pattern) => trimmed.includes(pattern))
-        || confusedPatternsEn.some((pattern) => normalized.includes(pattern))
+        || confusedPatternsEn.some((pattern) => normalized.includes(pattern.replace(/\s+/g, "")))
 }
 
 const KEYBOARD_ROWS = ["qwertyuiop", "asdfghjkl", "zxcvbnm"]
