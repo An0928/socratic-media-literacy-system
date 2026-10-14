@@ -277,7 +277,7 @@ export async function getAiReply(
       baseUrl: "https://api.openai.com/v1/chat/completions",
       apiKey: process.env.OPENAI_API_KEY || "",
       //model: "gpt-5.4-mini",
-      model: "gpt-4.1-mini"
+      model: "gpt-4.1-mini",
     })
   } catch (err) {
     console.error("AI provider error:", err)

@@ -127,12 +127,16 @@ export function StudyApp({ initialState }: { initialState: StudentState | null }
   }
 
   if (screen === "welcome") {
-    return <WelcomeScreen onStart={handleWelcomeDone} />
+    return <WelcomeScreen onStart={handleWelcomeDone} language={state.language} />
   }
 
   if (screen === "analysis" && activePostId) {
     if (!activePost) {
-      return <div className="flex min-h-screen items-center justify-center">載入中…</div>
+      return (
+        <div className="flex min-h-screen items-center justify-center">
+          {state.language === "en" ? "Loading…" : "載入中…"}
+        </div>
+      )
     }
 
     return (
