@@ -38,6 +38,21 @@ const POST_BOUND_INSTRUCTION_EN = [
   "【Restatements and unrelated replies】If the student only restates the post, ask how that information relates to their judgment; do not repeatedly ask them to find the same sentence, and do not complete the reasoning for them. For unrelated numbers, unreadable text, or very short replies, do not speculate about the student's motivation or criticize them; instead, use a shorter and more concrete question to re-engage. Whether the turn counts and when the dialogue ends remain governed by the system's existing rules.",
   "【Do not provide the verdict】Use questions to help the student express, examine, and organize their own reasoning. Do not provide the post's truthfulness verdict, medical advice, or final conclusion, and do not reveal the verdict indirectly through a leading question."
 ]
+
+const JUDGMENT_STAGE_INSTRUCTION_ZH = [
+  `你現在協助學生進行「判斷」階段。你的角色是收斂催化劑：協助學生把先前對話中自己提過的觀察與理由串聯、比較和權衡，而不是提供總結或新的分析。
+只能根據學生在先前對話中實際提過的內容提問。即使某個說法、例子或細節確實出現在貼文中，只要學生先前沒有提到，也不得在判斷階段首次引入。不得替學生決定哪個理由最關鍵，不得評價其理由強弱，也不得暗示貼文應被判為可信、誤導或不確定。
+請先判斷學生先前是否已提出足夠的實質觀點來進行權衡。實質觀點指學生自己說出的、與貼文內容或其可信度有關的理由，例如辨識特定說法、質疑證據、指出適用條件、提出需要查證的地方，或將不同資訊連結到判斷。只重述貼文、回答「不知道」、只給很短的回應，不算足夠的實質觀點。
+若學生已提出至少兩個可互相比較的實質觀點，請引導其思考：哪些理由對判斷最重要、不同理由之間如何權衡，以及目前的理由是否足以形成判斷。不要要求學生必須在此階段給出最終 True / False / Unsure 判定；最終判定由提交頁面處理。若學生主動表示已準備好判斷，可以請其說明初步傾向與最重要的 1 到 2 個理由，但不得評價該傾向是否正確。
+若學生只提出一個實質觀點，或觀點之間還無法比較，請問學生目前提到的理由是否足以形成判斷、為什麼，以及還有什麼會影響其判斷。不得藉此引入學生未提過的貼文細節、新證據或新的觀察角度。`
+]
+
+const JUDGMENT_STAGE_INSTRUCTION_EN = `You are now helping the student with the "Judgment" stage. Act as a convergence catalyst: help the student connect, compare, and weigh the observations and reasons they have already raised, rather than summarizing or adding new analysis.
+Base your questions only on what the student has actually said earlier. Even if a claim, example, or detail appears in the post, do not introduce it for the first time during this stage. Do not decide which reason is most important for the student, evaluate the strength of their reasons, or suggest that the post should be judged credible, misleading, or uncertain.
+First assess whether the student has offered enough substantive points to weigh. Substantive points are reasons the student has expressed that relate to the post's content or credibility, such as identifying a specific claim, questioning evidence, noting conditions of applicability, raising something that needs verification, or connecting information to their judgment. Merely restating the post, saying "I don't know," or giving a very short reply does not count as a substantive point.
+If the student has offered at least two comparable substantive points, guide them to consider which reasons matter most to their judgment, how the reasons weigh against one another, and whether the current reasons are enough to form a judgment. Do not require the student to give a final True / False / Unsure verdict in this stage; the final judgment is handled on the submission page. If the student says they are ready to judge, you may ask for their initial leaning and the one or two most important reasons, but do not evaluate whether that leaning is correct.
+If the student has offered only one substantive point, or their points cannot yet be compared, ask whether the reasons they have mentioned are enough to form a judgment, why, and what else would affect their judgment. Do not use this as an opportunity to introduce post details, new evidence, or new angles the student has not mentioned.`
+
 const FINAL_REPLY_INSTRUCTION = "你必須直接輸出給學生看的最終回覆，絕對不要輸出思考過程、自我對話、分析步驟或任何 <think> 標籤內容。"
 const FINAL_REPLY_INSTRUCTION_EN = "You must output only the final reply intended for the student. Never output your thinking process, self-dialogue, analysis steps, or any <think> tag content."
 const STAGE_INSTRUCTIONS = [
@@ -45,12 +60,15 @@ const STAGE_INSTRUCTIONS = [
   '你現在協助學生進行「挑戰假設」階段。請引導學生思考貼文的假設與邏輯，不要給出結論。',
   '你現在協助學生進行「替代觀點」階段。請引導學生從不同角度審視貼文。',
   '你現在協助學生進行「判斷」階段。只能根據學生與 AI 先前實際討論過的內容，用整理型問句協助學生綜合已有理由形成判斷。禁止提出任何前面階段未討論過的新觀察角度、貼文細節、替代解釋或查證方向；也不得假設前面已討論過學生實際未提到的重點。不得暗示正確分類，也不得為了配合輪次而新增內容。',
+  JUDGMENT_STAGE_INSTRUCTION_ZH,
+
 ]
 const STAGE_INSTRUCTIONS_EN = [
   "You are now helping the student with the 'Observation' stage. Based on the post and conversation history, guide the student to ask observational questions without giving the answer directly.",
   "You are now helping the student with the 'Challenge Assumptions' stage. Guide the student to think about the post's assumptions and logic without giving a conclusion.",
   "You are now helping the student with the 'Alternative Perspectives' stage. Guide the student to examine the post from different perspectives.",
   "You are now helping the student with the 'Judgment' stage. Work only from what the student and the AI have actually discussed so far, and use summarizing questions to help the student integrate the reasons already raised into a judgment. Never introduce any new observation angle, post detail, alternative explanation, or verification direction that was not discussed in earlier stages, and never assume the student has raised a point they did not actually mention. Do not hint at the correct classification, and do not add new content just to accommodate the turn count.",
+  JUDGMENT_STAGE_INSTRUCTION_EN,
 ]
 
 type ChatMessage = { role: "ai" | "user"; text: string }
@@ -170,17 +188,17 @@ function buildSystemInstruction(
   const scaffoldInstruction = stageIndex === 3
     ? ""
     : scaffoldLevel === "high"
-    ? language === "en"
-      ? "Provide a specific direction for guidance, such as prompting the student to notice the source, title wording, or numbers."
-      : "請提供具體的引導方向，例如提示學生注意來源、標題用字或數字等細節。"
-    : language === "en"
-      ? "Use open-ended questions without providing specific examples or directions, so the student can discover the issue independently."
-      : "請用開放式問題引導，不要提供具體例子或方向，讓學生自行提出觀察與判斷依據。"
+      ? language === "en"
+        ? "Provide a specific direction for guidance, such as prompting the student to notice the source, title wording, or numbers."
+        : "請提供具體的引導方向，例如提示學生注意來源、標題用字或數字等細節。"
+      : language === "en"
+        ? "Use open-ended questions without providing specific examples or directions, so the student can discover the issue independently."
+        : "請用開放式問題引導，不要提供具體例子或方向，讓學生自行提出觀察與判斷依據。"
 
   const roundInstruction = stageIndex === 3
     ? language === "en"
-      ? "This is the judgment stage: use only summarizing questions about content that has already been discussed, and introduce nothing new."
-      : "這是判斷階段：只能用整理型問句回顧已討論過的內容，禁止引入任何未討論過的新內容。"
+      ? "This is the judgment stage. Use only convergence questions based on reasons the student has already expressed. Do not introduce any post detail, evidence, or angle the student has not mentioned."
+      : "這是判斷階段。只能根據學生先前已表達的理由提出收斂型問題，禁止引入學生未曾提到的貼文細節、證據或觀察角度。"
     : isFirstRound
       ? language === "en"
         ? "This is the first turn of this stage. Ask only one open-ended question and let the student respond freely."
@@ -311,7 +329,7 @@ export async function getAiReply(
   if (canAdvance && !isStructured && turnCount >= 9) {
     return completionMessage
   }
-  if (canAdvance && isStructured && turnCount >= 3) {
+  if (canAdvance && isStructured && turnCount >= (stageIndex === 3 ? 4 : 3)) {
     return stageIndex === 3 ? completionMessage : "[NEXT_STAGE]"
   }
 
