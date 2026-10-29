@@ -3,8 +3,7 @@ export function isMeaninglessResponse(text: string): boolean {
         "不知道", "沒有", "不清楚", "沒差", "隨便", "不確定", "沒感覺", "沒想法", "阿災", "還好",
     ]
     const meaninglessPatternsEn = [
-        "i don't know", "idk", "no", "not sure", "whatever",
-        "i don't care", "no idea", "dunno", "meh",
+        "i don't know", "i dont know", "idk", "no", "not sure", "whatever", "i don't care", "i dont care", "no idea", "dunno", "meh",
     ]
     const trimmed = text.trim().replace(/[。！？，、\s]/g, "")
     const normalized = trimmed.toLowerCase()
