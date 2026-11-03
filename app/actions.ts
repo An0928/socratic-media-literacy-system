@@ -137,6 +137,13 @@ function buildSystemInstruction(
   const imageBoundaryInstruction = language === "en"
     ? "Use the description of the post image to check the student's statement or confirm details only when the student has mentioned something in the image first. If the student discusses only the text, do not bring the conversation to the image; continue asking about the text."
     : "貼文圖片內容的描述，只有在學生自己主動提到圖片裡的東西時，才能用來核對學生說的對不對、或幫學生確認細節；如果學生從頭到尾都只針對文字內容討論，請不要主動把話題引導去圖片，繼續針對文字內容追問就好。"
+
+  const taskAnchorInstruction = language === "en"
+    ? "Your task is to help the student evaluate the credibility of this specific post, including its claims, evidence, conditions of applicability, potential misunderstandings, and how readers should interpret its advice. Even if the student mentions personal experience, parenting practices, habits, or other real-life actions, do not turn the conversation into general life advice, parenting advice, health advice, or behavior-change advice.\nIf the student's response drifts away from evaluating the post—for example, by discussing how parents should discipline children, how to make a child eat less, or how to improve habits—briefly acknowledge what they mentioned, then immediately return to the question to the post's content or credibility. Do not continue asking how to solve that everyday situation, and do not offer parenting, health, or behavior-change advice.\nEvery question must clearly connect to a claim, piece of evidence, recommendation, condition of applicability, or credibility issue in the post. If you cannot explain how a question relates to evaluating this post, do not ask it."
+    : "你的任務是協助學生評估「這則貼文」的可信度，包括它的說法、證據、適用條件、可能造成的誤解，以及讀者應如何理解其建議。即使學生提到生活經驗、教養方式、個人習慣或其他實際做法，你也不得把對話轉為一般生活建議、親職建議、健康建議或行為改變建議。\n若學生的回答開始偏離貼文評估，例如討論家長如何管教小孩、如何讓孩子少吃食物、如何改善生活習慣，請用一句簡短話語承認學生提到的情況，然後立即把問題拉回貼文內容或其可信度。不得繼續追問如何解決該生活情境，也不得提供教養、健康或行為改變的建議。\n每一個問題都必須能明確連回貼文的某個說法、證據、建議、適用條件或可信度。若你無法說明該問題和評估這則貼文有什麼關係，就不要問那個問題。"
+
+
+
   const stageInstructions = language === "en" ? STAGE_INSTRUCTIONS_EN : STAGE_INSTRUCTIONS
   const stageInstructionBase = stageInstructions[stageIndex] ?? stageInstructions[0]
   const meaninglessInstruction = isMeaningless
@@ -242,6 +249,7 @@ function buildSystemInstruction(
     captionContext,
     language === "en" ? FINAL_REPLY_INSTRUCTION_EN : FINAL_REPLY_INSTRUCTION,
     language === "en" ? "You are a misinformation evaluation guide who asks the student open-ended questions about this post." : "你是一個錯誤資訊評估引導助手，針對這則貼文對學生提出開放式問題。",
+    taskAnchorInstruction,
     imageBoundaryInstruction,
     postSpecificGuidance,
     postPromptNote,
@@ -256,7 +264,7 @@ function buildSystemInstruction(
     noCountInstruction,
     language === "en" ? "Each reply may begin with one short, neutral sentence that picks up on the point the student has expressed, but you must not evaluate its correctness or hint at the answer; after that, ask exactly one question. Vary your wording and respond naturally, like a friend discussing the topic." : "每次回覆可先用一句簡短、中立的話回應學生已表達的重點，但不得評價其正確性或暗示答案；隨後只能提出一個問句。回應方式要有變化、像朋友聊天一樣自然，不要每次都用同一種句型開頭。",
     language === "en" ? "Respond like a friend discussing the topic, not like an exam or evaluation. You may use relatable situations so the question feels concrete." : "回應的語氣要像朋友在討論，不要像在考試或審核學生。可以適度用貼近生活的情境提問，例如『如果你朋友傳這篇給你，你會怎麼回她？』，讓問題更有畫面感，不要每一句都停留在抽象的文本分析。",
-    language === "en" ? "Except for one brief sentence that picks up on what the student has already said, everything you write must be a question; you must never provide the answer or conclusion directly." : "除了簡短承接學生已說內容的一句話外，你的提問部分只能是問句，不得直接提供答案或結論。",
+    language === "en" ? "Except for one brief, neutral sentence that picks up on what the student has already said, your reply must consist only of questions; never provide the answer or conclusion directly. Do not give life advice, parenting advice, health advice, behavior-change advice, or facts from outside the post, and do not present such advice through examples or hypothetical scenarios or imply a correct action." : "除了簡短、中性承接學生已說內容的一句話外，你的回覆只能是問句，不得直接提供答案或結論；也不得提供生活建議、教養建議、健康建議、行為改變建議或貼文以外的事實補充，更不得用例子或假設情境包裝這些建議、暗示正確做法。",
   ]
     .filter(Boolean)
     .join("\n")
