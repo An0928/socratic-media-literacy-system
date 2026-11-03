@@ -66,8 +66,10 @@ export function StudyApp({ initialState }: { initialState: StudentState | null }
   const allPosts = useMemo(() => Object.values(postsByWeek).flat(), [postsByWeek])
   const isFinalPost = useMemo(() => {
     if (!activePostId || allPosts.length === 0) return false
-    return allPosts.every((post) => post.id === activePostId || completedIds.has(post.id))
-  }, [activePostId, allPosts, completedIds])
+    // 順序制：閱讀順序的最後一則＝最後一則。能到達這裡代表前面都已完成；
+    // admin 不寫 DB 也能正確判定，方便直接預覽。
+    return activePostId === allPosts[allPosts.length - 1]?.id
+  }, [activePostId, allPosts])
 
   useEffect(() => {
     const postId = activePostId

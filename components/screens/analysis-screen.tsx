@@ -266,9 +266,7 @@ export function AnalysisScreen({ post, existing, onComplete, onExit, isStructure
 
   function handleJudgment(judgment: Judgment) {
     if (!canSaveSubmission) {
-      startTransition(() => {
-        onComplete()
-      })
+      // admin/預覽模式：不寫資料庫，但照常顯示回饋頁與完成卡，讓流程可被完整檢視。
       return
     }
 
