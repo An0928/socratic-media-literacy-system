@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Check, X, HelpCircle, ArrowRight, PartyPopper } from "lucide-react"
+import { Check, X, HelpCircle, ArrowRight } from "lucide-react"
 import type { Judgment } from "@/lib/db"
 import { Button } from "@/components/ui/button"
 
@@ -51,7 +51,7 @@ function getOptions(language: "zh" | "en") {
 
 export function JudgmentScreen({ onSelect, onContinue, saving, isTrue, isFinalPost = false, language = "zh" }: Props) {
   const [selected, setSelected] = useState<Judgment | null>(null)
-  const [phase, setPhase] = useState<"choose" | "feedback" | "complete">("choose")
+  const [phase, setPhase] = useState<"choose" | "feedback">("choose")
   const options = getOptions(language)
 
   function choose(value: Judgment) {
@@ -93,7 +93,7 @@ export function JudgmentScreen({ onSelect, onContinue, saving, isTrue, isFinalPo
                 ))}
               </div>
             </>
-          ) : phase === "feedback" ? (
+          ) : (
             <div className="flex flex-col items-center text-center">
               <span
                 className={`flex size-20 animate-in zoom-in-50 items-center justify-center rounded-full shadow-md duration-500 ${isCorrect === true
@@ -119,24 +119,6 @@ export function JudgmentScreen({ onSelect, onContinue, saving, isTrue, isFinalPo
                     : language === "en"
                       ? `This post was actually ${isTrue ? "credible" : "misleading"}.`
                       : `這則貼文其實是「${isTrue ? "可信的" : "誤導的"}」。`}
-              </h2>
-              <Button
-                onClick={() => setPhase("complete")}
-                className="mt-8 h-12 w-full rounded-xl bg-primary text-base font-bold text-primary-foreground shadow-sm transition-transform hover:bg-primary/90 active:scale-[0.98]"
-              >
-                <span className="flex items-center gap-1.5">
-                  {language === "en" ? "Continue" : "繼續"} <ArrowRight className="size-5" aria-hidden="true" />
-                </span>
-              </Button>
-            </div>
-          ) : (
-            <div className="flex flex-col items-center text-center">
-              <span className="flex size-20 animate-in zoom-in-50 items-center justify-center rounded-full bg-success text-success-foreground shadow-md duration-500">
-                <Check className="size-10" aria-hidden="true" strokeWidth={3} />
-              </span>
-              <h2 className="mt-6 flex items-center gap-2 text-2xl font-extrabold text-card-foreground">
-                <PartyPopper className="size-6 text-primary" aria-hidden="true" />
-                {language === "en" ? "Post Complete!" : "本則完成！"}
               </h2>
               <p className="mt-2 text-pretty text-sm leading-relaxed text-muted-foreground">
                 {language === "en"
