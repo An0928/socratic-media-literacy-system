@@ -34,12 +34,13 @@ type Props = {
   existing?: Submission
   isStructured?: boolean
   canSaveSubmission?: boolean
+  isFinalPost?: boolean
   language?: "zh" | "en"
   onComplete: () => void
   onExit: () => void
 }
 
-export function AnalysisScreen({ post, existing, onComplete, onExit, isStructured: isStructuredProp = true, canSaveSubmission = true, language = "zh" }: Props) {
+export function AnalysisScreen({ post, existing, onComplete, onExit, isStructured: isStructuredProp = true, canSaveSubmission = true, isFinalPost = false, language = "zh" }: Props) {
   // stageIndex points at the AI turn the student is currently responding to.
   const [stageIndex, setStageIndex] = useState(0)
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -283,6 +284,7 @@ export function AnalysisScreen({ post, existing, onComplete, onExit, isStructure
         onContinue={onComplete}
         saving={pending}
         isTrue={post.isTrue}
+        isFinalPost={isFinalPost}
         language={language}
       />
     )

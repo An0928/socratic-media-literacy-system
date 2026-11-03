@@ -63,6 +63,12 @@ export function StudyApp({ initialState }: { initialState: StudentState | null }
     return TOTAL_WEEKS
   }, [completedIds, postsByWeek])
 
+  const allPosts = useMemo(() => Object.values(postsByWeek).flat(), [postsByWeek])
+  const isFinalPost = useMemo(() => {
+    if (!activePostId || allPosts.length === 0) return false
+    return allPosts.every((post) => post.id === activePostId || completedIds.has(post.id))
+  }, [activePostId, allPosts, completedIds])
+
   useEffect(() => {
     const postId = activePostId
 
@@ -146,6 +152,7 @@ export function StudyApp({ initialState }: { initialState: StudentState | null }
         isStructured={state.isStructured}
         language={state.language}
         canSaveSubmission={!isAdmin}
+        isFinalPost={isFinalPost}
         onComplete={handleAnalysisComplete}
         onExit={() => {
           setActivePost(null)

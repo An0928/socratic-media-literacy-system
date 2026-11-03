@@ -10,6 +10,7 @@ type Props = {
   onContinue: () => void
   saving: boolean
   isTrue: boolean
+  isFinalPost?: boolean
   language?: "zh" | "en"
 }
 
@@ -48,7 +49,7 @@ function getOptions(language: "zh" | "en") {
   ]
 }
 
-export function JudgmentScreen({ onSelect, onContinue, saving, isTrue, language = "zh" }: Props) {
+export function JudgmentScreen({ onSelect, onContinue, saving, isTrue, isFinalPost = false, language = "zh" }: Props) {
   const [selected, setSelected] = useState<Judgment | null>(null)
   const [phase, setPhase] = useState<"choose" | "feedback" | "complete">("choose")
   const options = getOptions(language)
@@ -149,6 +150,8 @@ export function JudgmentScreen({ onSelect, onContinue, saving, isTrue, language 
               >
                 {saving ? (
                   language === "en" ? "Saving…" : "儲存中…"
+                ) : isFinalPost ? (
+                  language === "en" ? "🎉 Congratulations! You've completed all posts." : "🎉恭喜你完成所有貼文"
                 ) : (
                   <span className="flex items-center gap-1.5">
                     {language === "en" ? "Continue to Next" : "繼續下一則"} <ArrowRight className="size-5" aria-hidden="true" />
