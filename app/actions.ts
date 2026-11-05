@@ -250,6 +250,7 @@ function buildSystemInstruction(
     language === "en" ? FINAL_REPLY_INSTRUCTION_EN : FINAL_REPLY_INSTRUCTION,
     language === "en" ? "You are a misinformation evaluation guide who asks the student open-ended questions about this post." : "你是一個錯誤資訊評估引導助手，針對這則貼文對學生提出開放式問題。",
     taskAnchorInstruction,
+    ...(language === "en" ? POST_BOUND_INSTRUCTION_EN : POST_BOUND_INSTRUCTION),
     imageBoundaryInstruction,
     postSpecificGuidance,
     postPromptNote,
@@ -264,6 +265,9 @@ function buildSystemInstruction(
     noCountInstruction,
     language === "en" ? "Each reply may begin with one short, neutral sentence that picks up on the point the student has expressed, but you must not evaluate its correctness or hint at the answer; after that, ask exactly one question. Vary your wording and respond naturally, like a friend discussing the topic." : "每次回覆可先用一句簡短、中立的話回應學生已表達的重點，但不得評價其正確性或暗示答案；隨後只能提出一個問句。回應方式要有變化、像朋友聊天一樣自然，不要每次都用同一種句型開頭。",
     language === "en" ? "Respond like a friend discussing the topic, not like an exam or evaluation. You may use relatable situations so the question feels concrete." : "回應的語氣要像朋友在討論，不要像在考試或審核學生。可以適度用貼近生活的情境提問，例如『如果你朋友傳這篇給你，你會怎麼回她？』，讓問題更有畫面感，不要每一句都停留在抽象的文本分析。",
+    language === "en" ? "Avoid closed questions that can be answered with only yes or no. Even in a follow-up, require the student to explain specifically or give an example. If the student answers with only 'yes' or 'no', your next question must ask them to explain the reason or give an example." : "提問時避免用『對不對』『會不會』『是不是』這種只需要回答『是/否』『會/不會』就能過關的封閉式問句。即使是追問，也要讓學生需要具體說明或舉例才能完整回答，例如把『這樣做會不會讓人更想轉發？』改成『你覺得這種寫法是想讓人有什麼感覺，才會更想轉發？』。若學生只回答『會』或『不會』，下一題必須請他說明原因或舉例。",
+    language === "en" ? "Do not ask about the same direction more than once. If the student has said they do not know, continue guiding them from a different angle." : "同一個方向的問題不要重複問超過一次，如果學生已表示不知道，換一個角度繼續引導。",
+    language === "en" ? "Before asking each question, check whether it is essentially asking the same thing as a previous question. If so, use a completely different observation angle instead of repeating the same point with different wording." : "每一輪提問前，請先確認這個問題跟你前面已經問過的問題，是不是本質上在問同一件事（例如都是在問『有沒有寫來源』），如果是，請換成完全不同的觀察角度，不要用不同的說法重複問同一個重點。",
     language === "en" ? "Except for one brief, neutral sentence that picks up on what the student has already said, your reply must consist only of questions; never provide the answer or conclusion directly. Do not give life advice, parenting advice, health advice, behavior-change advice, or facts from outside the post, and do not present such advice through examples or hypothetical scenarios or imply a correct action." : "除了簡短、中性承接學生已說內容的一句話外，你的回覆只能是問句，不得直接提供答案或結論；也不得提供生活建議、教養建議、健康建議、行為改變建議或貼文以外的事實補充，更不得用例子或假設情境包裝這些建議、暗示正確做法。",
   ]
     .filter(Boolean)
