@@ -148,8 +148,8 @@ function buildSystemInstruction(
   const stageInstructionBase = stageInstructions[stageIndex] ?? stageInstructions[0]
   const meaninglessInstruction = isMeaningless
     ? language === "en"
-      ? "The student's last answer was dismissive, such as 'I don't know' or 'It's okay'. Do not treat it as completing a turn.\nAsk again from a more specific angle, and do not add [NEXT_STAGE] this turn."
-      : "學生剛才的回答很敷衍（例如『不知道』『還好』），請不要視為完成一輪。\n換一個更具體的角度重新提問，並且這一輪絕對不要加 [NEXT_STAGE]。"
+      ? "The student's last answer was dismissive, such as 'I don't know' or 'It's okay'. Do not treat it as completing a turn.\nAsk again from a more specific angle, and do not add [NEXT_STAGE] this turn.\nIf there is nothing substantive to pick up on in the student's reply this turn (for example only 'OK', 'yes', or 'sure'), ask your question directly with no pickup sentence, and never open with 'You mentioned...' or 'You said...' to attribute statements the student did not make—including summaries of the post's content."
+      : "學生剛才的回答很敷衍（例如『不知道』『還好』），請不要視為完成一輪。\n換一個更具體的角度重新提問，並且這一輪絕對不要加 [NEXT_STAGE]。當這一輪學生的回答沒有實質內容可承接時（例如只回『好』『OK』），直接提出問題、不寫承接句，絕不用「你提到…」「你說…」把學生沒說過的話（含貼文內容的摘要）掛到學生身上。"
     : ""
   const confusedInstruction = isConfused
     ? language === "en"
