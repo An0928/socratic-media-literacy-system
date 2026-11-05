@@ -307,11 +307,17 @@ export async function getAiReply(
     language,
     previousStageLastAnswer,
   )
-  const systemInstruction = canAdvance
+  const firstQuestionNote = turnCount === 0
+    ? language === "en"
+      ? "\nThis is your first question in this stage and there is no prior conversation to pick up on. Start directly with the question itself. Do not open with 'You mentioned...', 'You said...', or any sentence that attributes statements to the student."
+      : "\n這是本階段的第一個問題，目前沒有任何對話可承接——直接以問題開頭，禁止使用「你提到…」「你說…」或任何把話掛在學生身上的開場句。"
+    : ""
+
+  const systemInstruction = (canAdvance
     ? baseInstruction
     : baseInstruction + (language === "en"
       ? "\nThis turn, do not add [NEXT_STAGE] under any circumstances."
-      : "\n這一輪無論如何都不要加 [NEXT_STAGE]。")
+      : "\n這一輪無論如何都不要加 [NEXT_STAGE]。")) + firstQuestionNote
 
   let candidateText = ""
   try {
