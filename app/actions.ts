@@ -261,7 +261,7 @@ function buildSystemInstruction(
     language === "en" ? "Never add [NEXT_STAGE] yourself. The system decides when this conversation ends based on the turn count." : "無論你認為學生的思考是否已經充分，都絕對不要自己在回覆中加上 [NEXT_STAGE] 標記，這個對話什麼時候結束完全由系統根據輪次數字判斷，不需要你介入或自行決定。",
     language === "en" ? "Reply directly without showing your thinking process." : "請直接回覆，不需要顯示思考過程。",
     language === "en" ? "You must reply in English." : "請務必使用繁體中文回覆。",
-    language === "en" ? "Use language a high school student can understand. Keep the sentence within two lines and ask only one question each time." : "請用高中生能理解的語言回覆，句子不超過兩行，每次只問一個問題。",
+    language === "en" ? "Use language a high school student can understand. Keep the sentence within two lines and ask only one question each time." : "請用高中生能理解的語言回覆，避免學術用語。每次只問一個問題，句子不超過兩行。",
     noCountInstruction,
     language === "en" ? "Each reply may begin with one short, neutral sentence that picks up on the point the student has expressed, but you must not evaluate its correctness or hint at the answer; after that, ask exactly one question. Vary your wording and respond naturally, like a friend discussing the topic." : "每次回覆可先用一句簡短、中立的話回應學生已表達的重點，但不得評價其正確性或暗示答案；隨後只能提出一個問句。回應方式要有變化、像朋友聊天一樣自然，不要每次都用同一種句型開頭。",
     language === "en" ? "Respond like a friend discussing the topic, not like an exam or evaluation. You may use relatable situations so the question feels concrete." : "回應的語氣要像朋友在討論，不要像在考試或審核學生。可以適度用貼近生活的情境提問，例如『如果你朋友傳這篇給你，你會怎麼回她？』，讓問題更有畫面感，不要每一句都停留在抽象的文本分析。",
