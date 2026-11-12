@@ -70,7 +70,7 @@ export function JudgmentScreen({ onSelect, onContinue, saving, isTrue, isFinalPo
           {phase === "choose" ? (
             <>
               <h1 className="text-balance text-center text-2xl font-extrabold text-card-foreground">
-                {language === "en" ? "Based on your thinking, what's your judgment?" : "根據你的思考，你的判斷是？"}
+                {language === "en" ? "Based on your thinking, what's your judgment about this post?" : "根據你的思考，你對這則貼文的判斷是？"}
               </h1>
               <p className="mt-2 text-center text-sm text-muted-foreground">
                 {language === "en"
@@ -97,10 +97,10 @@ export function JudgmentScreen({ onSelect, onContinue, saving, isTrue, isFinalPo
             <div className="flex flex-col items-center text-center">
               <span
                 className={`flex size-20 animate-in zoom-in-50 items-center justify-center rounded-full shadow-md duration-500 ${isCorrect === true
-                    ? "bg-success text-success-foreground"
-                    : isCorrect === false
-                      ? "bg-destructive text-destructive-foreground"
-                      : "bg-muted text-muted-foreground"
+                  ? "bg-success text-success-foreground"
+                  : isCorrect === false
+                    ? "bg-destructive text-destructive-foreground"
+                    : "bg-muted text-muted-foreground"
                   }`}
               >
                 {isCorrect === true ? (
